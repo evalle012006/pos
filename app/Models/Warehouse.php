@@ -12,9 +12,4 @@ class Warehouse extends Model
         'name', 'mobile', 'country', 'city', 'email', 'zip',
     ];
 
-    public function assignedUsers()
-    {
-        return $this->belongsToMany('App\Models\User');
-    }
-
 }

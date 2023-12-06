@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\UserWarehouse;
+use App\Exports\AdjustmentsExport;
 use App\Models\Adjustment;
 use App\Models\AdjustmentDetail;
 use App\Models\ProductVariant;
@@ -15,6 +14,7 @@ use Carbon\Carbon;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AdjustmentController extends BaseController
 {
@@ -63,9 +63,6 @@ class AdjustmentController extends BaseController
                 });
             });
         $totalRows = $Filtred->count();
-        if($perPage == "-1"){
-            $perPage = $totalRows;
-        }
         $Adjustments = $Filtred->offset($offSet)
             ->limit($perPage)
             ->orderBy($order, $dir)
@@ -80,14 +77,7 @@ class AdjustmentController extends BaseController
             $data[] = $item;
         }
 
-         //get warehouses assigned to user
-         $user_auth = auth()->user();
-         if($user_auth->is_all_warehouses){
-            $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
-         }else{
-            $warehouses_id = UserWarehouse::where('user_id', $user_auth->id)->pluck('warehouse_id')->toArray();
-            $warehouses = Warehouse::where('deleted_at', '=', null)->whereIn('id', $warehouses_id)->get(['id', 'name']);
-         }
+        $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
         return response()->json([
             'adjustments' => $data,
             'totalRows' => $totalRows,
@@ -559,15 +549,7 @@ class AdjustmentController extends BaseController
     {
         $this->authorizeForUser($request->user('api'), 'create', Adjustment::class);
 
-          //get warehouses assigned to user
-          $user_auth = auth()->user();
-          if($user_auth->is_all_warehouses){
-             $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
-          }else{
-             $warehouses_id = UserWarehouse::where('user_id', $user_auth->id)->pluck('warehouse_id')->toArray();
-             $warehouses = Warehouse::where('deleted_at', '=', null)->whereIn('id', $warehouses_id)->get(['id', 'name']);
-          }
-
+        $warehouses = Warehouse::where('deleted_at', null)->get(['id', 'name']);
         return response()->json(['warehouses' => $warehouses]);
     }
 
@@ -622,8 +604,8 @@ class AdjustmentController extends BaseController
                 $data['quantity'] = $detail->quantity;
                 $data['product_id'] = $detail->product_id;
                 $data['product_variant_id'] = $detail->product_variant_id;
-                $data['code'] = $productsVariants->code;
-                $data['name'] = '['.$productsVariants->name . ']' . $detail['product']['name'];
+                $data['code'] = $productsVariants->name . '-' . $detail['product']['code'];
+                $data['name'] = $detail['product']['name'];
                 $data['current'] = $item_product ? $item_product->qte : 0;
                 $data['type'] = $detail->type;
                 $data['unit'] = $detail['product']['unit']->ShortName;
@@ -653,15 +635,7 @@ class AdjustmentController extends BaseController
             $details[] = $data;
         }
 
-       
-        //get warehouses assigned to user
-         $user_auth = auth()->user();
-         if($user_auth->is_all_warehouses){
-            $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
-         }else{
-            $warehouses_id = UserWarehouse::where('user_id', $user_auth->id)->pluck('warehouse_id')->toArray();
-            $warehouses = Warehouse::where('deleted_at', '=', null)->whereIn('id', $warehouses_id)->get(['id', 'name']);
-         }
+        $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
 
         return response()->json([
             'details' => $details,
@@ -701,8 +675,8 @@ class AdjustmentController extends BaseController
                     ->first();
 
                 $data['quantity'] = $detail->quantity;
-                $data['code'] = $productsVariants->code;
-                $data['name'] = '['.$productsVariants->name . ']' . $detail['product']['name'];
+                $data['code'] = $productsVariants->name . '-' . $detail['product']['code'];
+                $data['name'] = $detail['product']['name'];
                 $data['unit'] = $detail['product']['unit']->ShortName;
                 $data['type'] = $detail->type;
 
@@ -724,5 +698,13 @@ class AdjustmentController extends BaseController
         ]);
     }
 
+    //-------------- Export All Adjustments to EXCEL  ---------------\\
+
+    public function exportExcel(Request $request)
+    {
+        $this->authorizeForUser($request->user('api'), 'view', Adjustment::class);
+
+        return Excel::download(new AdjustmentsExport, 'List_Adjustments.xlsx');
+    }
 
 }

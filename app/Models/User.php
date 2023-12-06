@@ -17,7 +17,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $fillable = [
-        'firstname', 'lastname', 'username', 'email', 'password', 'phone', 'statut', 'avatar', 'role_id','is_all_warehouses'
+        'firstname', 'lastname', 'username', 'email', 'password', 'phone', 'statut', 'avatar', 'role_id',
     ];
 
     /**
@@ -38,7 +38,6 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'role_id' => 'integer',
         'statut' => 'integer',
-        'is_all_warehouses' => 'integer',
     ];
 
     public function oauthAccessToken()
@@ -62,11 +61,6 @@ class User extends Authenticatable
             return $this->roles->contains('name', $role);
         }
         return !!$role->intersect($this->roles)->count();
-    }
-
-    public function assignedWarehouses()
-    {
-        return $this->belongsToMany('App\Models\Warehouse');
     }
 
 }

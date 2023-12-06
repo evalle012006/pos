@@ -16,7 +16,7 @@
                     :rules="{ required: true}"
                     v-slot="validationContext"
                   >
-                    <b-form-group :label="$t('date') + ' ' + '*'">
+                    <b-form-group :label="$t('date')">
                       <b-form-input
                         :state="getValidationState(validationContext)"
                         aria-describedby="date-feedback"
@@ -33,7 +33,7 @@
                 <!-- warehouse -->
                 <b-col lg="4" md="6" sm="12">
                   <validation-provider name="warehouse" :rules="{ required: true}">
-                    <b-form-group slot-scope="{ valid, errors }" :label="$t('warehouse') + ' ' + '*'">
+                    <b-form-group slot-scope="{ valid, errors }" :label="$t('warehouse')">
                       <v-select
                         :class="{'is-invalid': !!errors.length}"
                         :state="errors[0] ? false : (valid ? true : null)"
@@ -50,7 +50,7 @@
                 <!-- Expense_Category  -->
                 <b-col lg="4" md="6" sm="12">
                   <validation-provider name="category" :rules="{ required: true}">
-                    <b-form-group slot-scope="{ valid, errors }" :label="$t('Expense_Category') + ' ' + '*'">
+                    <b-form-group slot-scope="{ valid, errors }" :label="$t('Expense_Category')">
                       <v-select
                         :class="{'is-invalid': !!errors.length}"
                         :state="errors[0] ? false : (valid ? true : null)"
@@ -72,7 +72,7 @@
                     :rules="{ required: true , regex: /^\d*\.?\d*$/}"
                     v-slot="validationContext"
                   >
-                    <b-form-group :label="$t('Amount') + ' ' + '*'">
+                    <b-form-group :label="$t('Amount')">
                       <b-form-input
                         :state="getValidationState(validationContext)"
                         aria-describedby="Amount-feedback"
@@ -90,7 +90,7 @@
                 <!-- Details -->
                 <b-col lg="8" md="8" sm="12">
                   <validation-provider name="Details" :rules="{ required: true}">
-                    <b-form-group slot-scope="{ valid, errors }" :label="$t('Details') + ' ' + '*'">
+                    <b-form-group slot-scope="{ valid, errors }" :label="$t('Details')">
                       <textarea
                         :class="{'is-invalid': !!errors.length}"
                         :state="errors[0] ? false : (valid ? true : null)"
@@ -106,7 +106,7 @@
 
                 <b-col md="12">
                   <b-form-group>
-                    <b-button variant="primary" type="submit"  :disabled="SubmitProcessing"><i class="i-Yes me-2 font-weight-bold"></i> {{$t('submit')}}</b-button>
+                    <b-button variant="primary" type="submit"  :disabled="SubmitProcessing">{{$t('submit')}}</b-button>
                       <div v-once class="typo__p" v-if="SubmitProcessing">
                         <div class="spinner sm spinner-primary mt-3"></div>
                       </div>

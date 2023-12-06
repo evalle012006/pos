@@ -16,7 +16,7 @@
                     :rules="{ required: true}"
                     v-slot="validationContext"
                   >
-                    <b-form-group :label="$t('date') + ' ' + '*'">
+                    <b-form-group :label="$t('date')">
                       <b-form-input
                         :state="getValidationState(validationContext)"
                         aria-describedby="date-feedback"
@@ -32,7 +32,7 @@
                 <!-- From warehouse -->
                 <b-col lg="4" md="4" sm="12" class="mb-3">
                   <validation-provider name="From Warehouse" :rules="{ required: true}">
-                    <b-form-group slot-scope="{ valid, errors }" :label="$t('FromWarehouse') + ' ' + '*'">
+                    <b-form-group slot-scope="{ valid, errors }" :label="$t('FromWarehouse')">
                       <v-select
                         :class="{'is-invalid': !!errors.length}"
                         :state="errors[0] ? false : (valid ? true : null)"
@@ -51,7 +51,7 @@
                 <!-- To warehouse -->
                 <b-col lg="4" md="4" sm="12" class="mb-3">
                   <validation-provider name="To Warehouse" :rules="{ required: true}">
-                    <b-form-group slot-scope="{ valid, errors }" :label="$t('ToWarehouse') + ' ' + '*'">
+                    <b-form-group slot-scope="{ valid, errors }" :label="$t('ToWarehouse')">
                       <v-select
                         :class="{'is-invalid': !!errors.length}"
                         :state="errors[0] ? false : (valid ? true : null)"
@@ -72,11 +72,10 @@
                   <div id="autocomplete" class="autocomplete">
                     <input 
                      :placeholder="$t('Scan_Search_Product_by_Code_Name')"
-                       @input='e => search_input = e.target.value' 
-                      @keyup="search(search_input)"
+                      @keyup="search()" 
                       @focus="handleFocus"
                       @blur="handleBlur"
-                      ref="product_autocomplete"
+                      v-model="search_input"  
                       class="autocomplete-input" />
                     <ul class="autocomplete-result-list" v-show="focused">
                       <li class="autocomplete-result" v-for="product_fil in product_filter" @mousedown="SearchProduct(product_fil)">{{getResultValue(product_fil)}}</li>
@@ -273,7 +272,7 @@
                  <!-- Status  -->
                 <b-col lg="4" md="4" sm="12" class="mb-3">
                   <validation-provider name="Status" :rules="{ required: true}">
-                    <b-form-group slot-scope="{ valid, errors }" :label="$t('Status') + ' ' + '*'">
+                    <b-form-group slot-scope="{ valid, errors }" :label="$t('Status')">
                       <v-select
                         :class="{'is-invalid': !!errors.length}"
                         :state="errors[0] ? false : (valid ? true : null)"
@@ -304,7 +303,7 @@
                 </b-col>
                 <b-col md="12">
                   <b-form-group>
-                    <b-button variant="primary" @click="Submit_Transfer" :disabled="SubmitProcessing"><i class="i-Yes me-2 font-weight-bold"></i> {{$t('submit')}}</b-button>
+                    <b-button variant="primary" @click="Submit_Transfer" :disabled="SubmitProcessing">{{$t('submit')}}</b-button>
                     <div v-once class="typo__p" v-if="SubmitProcessing">
                       <div class="spinner sm spinner-primary mt-3"></div>
                     </div>
@@ -329,7 +328,7 @@
                 :rules="{ required: true , regex: /^\d*\.?\d*$/}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('ProductCost') + ' ' + '*'" id="cost-input">
+                <b-form-group :label="$t('ProductCost')" id="cost-input">
                   <b-form-input
                     label="Product Cost"
                     v-model.number="detail.Unit_cost"
@@ -344,7 +343,7 @@
             <!-- Tax Method -->
             <b-col lg="12" md="12" sm="12">
               <validation-provider name="Tax Method" :rules="{ required: true}">
-                <b-form-group slot-scope="{ valid, errors }" :label="$t('TaxMethod') + ' ' + '*'">
+                <b-form-group slot-scope="{ valid, errors }" :label="$t('TaxMethod')">
                   <v-select
                     :class="{'is-invalid': !!errors.length}"
                     :state="errors[0] ? false : (valid ? true : null)"
@@ -369,7 +368,7 @@
                 :rules="{ required: true , regex: /^\d*\.?\d*$/}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('OrderTax') + ' ' + '*'">
+                <b-form-group :label="$t('OrderTax')">
                   <b-input-group append="%">
                     <b-form-input
                       label="Order Tax"
@@ -386,7 +385,7 @@
             <!-- Discount Method -->
             <b-col lg="12" md="12" sm="12">
               <validation-provider name="Discount Method" :rules="{ required: true}">
-                <b-form-group slot-scope="{ valid, errors }" :label="$t('Discount_Method') + ' ' + '*'">
+                <b-form-group slot-scope="{ valid, errors }" :label="$t('Discount_Method')">
                   <v-select
                     v-model="detail.discount_Method"
                     :reduce="label => label.value"
@@ -411,7 +410,7 @@
                 :rules="{ required: true , regex: /^\d*\.?\d*$/}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('Discount') + ' ' + '*'">
+                <b-form-group :label="$t('Discount')">
                   <b-form-input
                     label="Discount"
                     v-model.number="detail.discount"
@@ -425,7 +424,7 @@
 
             <b-col md="12">
               <b-form-group>
-                <b-button variant="primary" type="submit"><i class="i-Yes me-2 font-weight-bold"></i> {{$t('submit')}}</b-button>
+                <b-button variant="primary" type="submit">{{$t('submit')}}</b-button>
               </b-form-group>
             </b-col>
           </b-row>
@@ -633,7 +632,7 @@ export default {
             this.timer = null;
       }
 
-      if (this.search_input.length < 2) {
+      if (this.search_input.length < 1) {
 
         return this.product_filter= [];
       }
@@ -688,11 +687,10 @@ export default {
           this.product.quantity = 1;
         }
         this.product.product_variant_id = result.product_variant_id;
-        this.Get_Product_Details(result.id, result.product_variant_id);
+        this.Get_Product_Details(result.id);
       }
 
       this.search_input= '';
-      this.$refs.product_autocomplete.value = "";
       this.product_filter = [];
     },
 
@@ -957,7 +955,7 @@ export default {
         NProgress.start();
         NProgress.set(0.1);
       axios
-        .get("get_Products_by_warehouse/" + id + "?stock=" + 1 + "&product_service=" + 0)
+        .get("Products/Warehouse/" + id + "?stock=" + 1)
          .then(response => {
             this.products = response.data;
              NProgress.done();
@@ -969,8 +967,8 @@ export default {
 
     //---------------------------------Get Product Details ------------------------\\
 
-    Get_Product_Details(product_id, variant_id) {
-      axios.get("/show_product_data/" + product_id +"/"+ variant_id).then(response => {
+    Get_Product_Details(product_id) {
+      axios.get("Products/" + product_id).then(response => {
         this.product.discount = 0;
         this.product.DiscountNet = 0;
         this.product.discount_Method = "2";

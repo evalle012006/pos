@@ -21,7 +21,7 @@
                   :rules="{ required: true , min:4 , max:20}"
                   v-slot="validationContext"
                 >
-                  <b-form-group :label="$t('Firstname') + ' ' + '*'">
+                  <b-form-group :label="$t('Firstname')">
                     <b-form-input
                       :state="getValidationState(validationContext)"
                       aria-describedby="Firstname-feedback"
@@ -42,7 +42,7 @@
                   :rules="{ required: true , min:4 , max:20}"
                   v-slot="validationContext"
                 >
-                  <b-form-group :label="$t('lastname') + ' ' + '*'">
+                  <b-form-group :label="$t('lastname')">
                     <b-form-input
                       :state="getValidationState(validationContext)"
                       aria-describedby="lastname-feedback"
@@ -63,7 +63,7 @@
                   :rules="{ required: true , min:4 , max:20}"
                   v-slot="validationContext"
                 >
-                  <b-form-group :label="$t('username') + ' ' + '*'">
+                  <b-form-group :label="$t('username')">
                     <b-form-input
                       :state="getValidationState(validationContext)"
                       aria-describedby="username-feedback"
@@ -84,7 +84,7 @@
                   :rules="{ required: true}"
                   v-slot="validationContext"
                 >
-                  <b-form-group :label="$t('Phone') + ' ' + '*'">
+                  <b-form-group :label="$t('Phone')">
                     <b-form-input
                       :state="getValidationState(validationContext)"
                       aria-describedby="Phone-feedback"
@@ -103,7 +103,7 @@
                   :rules="{ required: true}"
                   v-slot="validationContext"
                 >
-                  <b-form-group :label="$t('Email') + ' ' + '*'">
+                  <b-form-group :label="$t('Email')">
                     <b-form-input
                       :state="getValidationState(validationContext)"
                       aria-describedby="Email-feedback"
@@ -154,7 +154,7 @@
               </b-col>
 
               <b-col md="12" class="mt-3">
-                <b-button variant="primary" type="submit"><i class="i-Yes me-2 font-weight-bold"></i> {{$t('submit')}}</b-button>
+                <b-button variant="primary" type="submit">{{$t('submit')}}</b-button>
               </b-col>
             </b-row>
           </b-form>
@@ -230,7 +230,7 @@ export default {
     //------------------ Get Profile Info ----------------------\\
     Get_Profile_Info() {
       axios
-        .get("Get_user_profile")
+        .get("users/Get_Info/Profile")
         .then(response => {
           this.user = response.data.user;
           this.avatar = this.currentUser.avatar;
@@ -269,7 +269,7 @@ export default {
       self.data.append("_method", "put");
 
       axios
-        .post("update_user_profile/" + self.user.id, self.data)
+        .post("updateProfile/" + self.user.id, self.data)
         .then(response => {
           this.makeToast(
             "success",

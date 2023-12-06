@@ -36,9 +36,6 @@ class PermissionsController extends BaseController
                 });
             });
         $totalRows = $roles->count();
-        if($perPage == "-1"){
-            $perPage = $totalRows;
-        }
         $roles = $roles->offset($offSet)
             ->limit($perPage)
             ->orderBy($order, $dir)
@@ -76,8 +73,12 @@ class PermissionsController extends BaseController
                 $permissions = $request->permissions;
 
                 foreach ($permissions as $permission_slug) {
-                    $perm = Permission::firstOrCreate(['name' => $permission_slug]);
-                    $data[] = $perm->id;
+
+                    //get the permission object by name
+                    $perm = Permission::where('name', $permission_slug)->first();
+                    if ($perm) {
+                        $data[] = $perm->id;
+                    }
                 }
 
                 $role->permissions()->attach($data);
@@ -126,8 +127,10 @@ class PermissionsController extends BaseController
                 foreach ($permissions as $permission_slug) {
 
                     //get the permission object by name
-                    $perm = Permission::firstOrCreate(['name' => $permission_slug]);
-                    $data[] = $perm->id;
+                    $perm = Permission::where('name', $permission_slug)->first();
+                    if ($perm) {
+                        $data[] = $perm->id;
+                    }
                 }
 
                 $role->permissions()->attach($data);
@@ -174,6 +177,11 @@ class PermissionsController extends BaseController
         return response()->json(['success' => true]);
     }
 
+    //----------- Check Create Page --------------\\
+    public function Check_Create_Page(Request $request)
+    {
+        $this->authorizeForUser($request->user('api'), 'create', Role::class);
+    }
 
     //----------- GET ALL Roles without paginate --------------\\
 
@@ -190,28 +198,21 @@ class PermissionsController extends BaseController
 
         $this->authorizeForUser($request->user('api'), 'update', Role::class);
 
-        if($id != '1'){
-            $Role = Role::with('permissions')->where('deleted_at', '=', null)->findOrFail($id);
+        $Role = Role::with('permissions')->where('deleted_at', '=', null)->findOrFail($id);
+        if ($Role) {
+            $item['name'] = $Role->name;
+            $item['description'] = $Role->description;
+            $data = [];
             if ($Role) {
-                $item['name'] = $Role->name;
-                $item['description'] = $Role->description;
-                $data = [];
-                if ($Role) {
-                    foreach ($Role->permissions as $permission) {
-                        $data[] = $permission->name;
-                    }
+                foreach ($Role->permissions as $permission) {
+                    $data[] = $permission->name;
                 }
             }
-            return response()->json([
-                'permissions' => $data,
-                'role' => $item,
-            ]);
-            
-        }else{
-            return response()->json([
-                'success' => false,
-            ], 401);
         }
+        return response()->json([
+            'permissions' => $data,
+            'role' => $item,
+        ]);
     }
 
 }

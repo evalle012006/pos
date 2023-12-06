@@ -1,6 +1,6 @@
 <template>
   <div class="main-content">
-    <breadcumb :page="$t('SalesReturn')" :folder="$t('ListReturns')"/>
+    <breadcumb :page="$t('ListReturns')" :folder="$t('SalesReturn')"/>
 
     <div v-if="isLoading" class="loading_page spinner spinner-primary mr-3"></div>
     <div v-else>
@@ -41,17 +41,19 @@
           <b-button @click="Sale_Return_PDF()" size="sm" variant="outline-success ripple m-1">
             <i class="i-File-Copy"></i> PDF
           </b-button>
-          <vue-excel-xlsx
-              class="btn btn-sm btn-outline-danger ripple m-1"
-              :data="sales_return"
-              :columns="columns"
-              :file-name="'sales_return'"
-              :file-type="'xlsx'"
-              :sheet-name="'sales_return'"
-              >
-              <i class="i-File-Excel"></i> EXCEL
-          </vue-excel-xlsx>
-         
+          <b-button @click="Sale_Return_Excel()" size="sm" variant="outline-danger ripple m-1">
+            <i class="i-File-Excel"></i> EXCEL
+          </b-button>
+          <router-link
+            class="btn-sm btn btn-primary ripple btn-icon m-1"
+            v-if="currentUserPermissions && currentUserPermissions.includes('Sale_Returns_add')"
+            to="/app/sale_return/store"
+          >
+            <span class="ul-btn__icon">
+              <i class="i-Add"></i>
+            </span>
+            <span class="ul-btn__text ml-1">{{$t('Add')}}</span>
+          </router-link>
         </div>
 
         <template slot="table-row" slot-scope="props">
@@ -80,7 +82,7 @@
                 <b-dropdown-item
                   title="Edit"
                   v-if="currentUserPermissions.includes('Sale_Returns_edit')"
-                  :to="'/app/sale_return/edit/'+props.row.id+'/'+props.row.sale_id"
+                  :to="'/app/sale_return/edit/'+props.row.id"
                 >
                   <i class="nav-icon i-Pen-2 font-weight-bold mr-2"></i>
                   {{$t('EditReturn')}}
@@ -105,6 +107,11 @@
                 <b-dropdown-item title="PDF" @click="Return_PDF(props.row , props.row.id)">
                   <i class="nav-icon i-File-TXT font-weight-bold mr-2"></i>
                   {{$t('DownloadPdf')}}
+                </b-dropdown-item>
+
+                <b-dropdown-item title="Email" @click="Sale_Return_Email(props.row , props.row.id)">
+                  <i class="nav-icon i-Envelope-2 font-weight-bold mr-2"></i>
+                  {{$t('EmailReturn')}}
                 </b-dropdown-item>
 
                 <b-dropdown-item
@@ -137,20 +144,6 @@
             >{{$t('partial')}}</span>
             <span v-else class="badge badge-outline-warning">{{$t('Unpaid')}}</span>
           </div>
-           <div v-else-if="props.column.field == 'Ref'">
-            <router-link
-              :to="'/app/sale_return/detail/'+props.row.id"
-            >
-              <span class="ul-btn__text ml-1">{{props.row.Ref}}</span>
-            </router-link>
-          </div>
-          <div v-else-if="props.column.field == 'sale_ref' && props.row.sale_id">
-            <router-link
-              :to="'/app/sales/detail/'+props.row.sale_id"
-            >
-              <span class="ul-btn__text ml-1">{{props.row.sale_ref}}</span>
-            </router-link>
-          </div>
         </template>
       </vue-good-table>
     </div>
@@ -170,18 +163,6 @@
           <b-col md="12">
             <b-form-group :label="$t('Reference')">
               <b-form-input label="Reference" :placeholder="$t('Reference')" v-model="Filter_Ref"></b-form-input>
-            </b-form-group>
-          </b-col>
-
-          <!-- sale  -->
-          <b-col md="12">
-            <b-form-group :label="$t('Sale')">
-              <v-select
-                :reduce="label => label.value"
-                :placeholder="$t('Choose_Sale_Ref')"
-                v-model="Filter_sale"
-                :options="sales.map(sales => ({label: sales.Ref, value: sales.id}))"
-              />
             </b-form-group>
           </b-col>
 
@@ -304,7 +285,20 @@
                       >
                         <i class="i-Pen-2"></i>
                       </span>
-                     
+                      <span
+                        title="Email"
+                        class="btn btn-icon btn-primary btn-sm"
+                        @click="EmailPayment(facture , sale_return)"
+                      >
+                        <i class="i-Envelope"></i>
+                      </span>
+                       <span
+                        title="SMS"
+                        class="btn btn-icon btn-secondary btn-sm"
+                        @click="Payment_SaleReturn_SMS(facture)"
+                      >
+                        <i class="i-Speach-Bubble"></i>
+                      </span>
                       <span
                         v-if="currentUserPermissions.includes('payment_returns_delete')"
                         title="Delete"
@@ -334,7 +328,7 @@
         <b-form @submit.prevent="Submit_Payment">
           <b-row>
             <!-- date -->
-            <b-col lg="4" md="12" sm="12">
+            <b-col lg="6" md="12" sm="12">
               <validation-provider
                 name="date"
                 :rules="{ required: true}"
@@ -354,7 +348,7 @@
             </b-col>
 
             <!-- Reference  -->
-            <b-col lg="4" md="12" sm="12">
+            <b-col lg="6" md="12" sm="12">
               <b-form-group :label="$t('Reference')">
                 <b-form-input
                   disabled="disabled"
@@ -365,35 +359,8 @@
               </b-form-group>
             </b-col>
 
-            <!-- Payment choice -->
-            <b-col lg="4" md="12" sm="12">
-              <validation-provider name="Payment choice" :rules="{ required: true}">
-                <b-form-group slot-scope="{ valid, errors }" :label="$t('Paymentchoice')">
-                  <v-select
-                    :class="{'is-invalid': !!errors.length}"
-                    :state="errors[0] ? false : (valid ? true : null)"
-                    v-model="facture.Reglement"
-                    @input="Selected_PaymentMethod"
-                    :reduce="label => label.value"
-                    :placeholder="$t('PleaseSelect')"
-                    :options="
-                          [
-                          {label: 'Cash', value: 'Cash'},
-                          {label: 'credit card', value: 'credit card'},
-                          {label: 'TPE', value: 'tpe'},
-                          {label: 'cheque', value: 'cheque'},
-                          {label: 'Western Union', value: 'Western Union'},
-                          {label: 'bank transfer', value: 'bank transfer'},
-                          {label: 'other', value: 'other'},
-                          ]"
-                  ></v-select>
-                  <b-form-invalid-feedback>{{ errors[0] }}</b-form-invalid-feedback>
-                </b-form-group>
-              </validation-provider>
-            </b-col>
-
               <!-- Received  Amount  -->
-            <b-col lg="4" md="12" sm="12">
+            <b-col lg="6" md="12" sm="12">
               <validation-provider
                 name="Received Amount"
                 :rules="{ required: true , regex: /^\d*\.?\d*$/}"
@@ -416,7 +383,7 @@
           </b-col>
 
             <!-- Paying Amount  -->
-            <b-col lg="4" md="12" sm="12">
+            <b-col lg="6" md="12" sm="12">
               <validation-provider
                 name="Amount"
                 :rules="{ required: true , regex: /^\d*\.?\d*$/}"
@@ -437,11 +404,38 @@
             </b-col>
 
             <!-- change Amount  -->
-            <b-col lg="4" md="12" sm="12">
+            <b-col lg="6" md="12" sm="12">
               <label>{{$t('Change')}} :</label>
               <p
                 class="change_amount"
               >{{parseFloat(facture.received_amount - facture.montant).toFixed(2)}}</p>
+            </b-col>
+
+
+            <!-- Payment choice -->
+            <b-col lg="6" md="12" sm="12">
+              <validation-provider name="Payment choice" :rules="{ required: true}">
+                <b-form-group slot-scope="{ valid, errors }" :label="$t('Paymentchoice')">
+                  <v-select
+                    :class="{'is-invalid': !!errors.length}"
+                    :state="errors[0] ? false : (valid ? true : null)"
+                    v-model="facture.Reglement"
+                    @input="Selected_PaymentMethod"
+                    :reduce="label => label.value"
+                    :placeholder="$t('PleaseSelect')"
+                    :options="
+                          [
+                          {label: 'Cash', value: 'Cash'},
+                          {label: 'credit card', value: 'credit card'},
+                          {label: 'cheque', value: 'cheque'},
+                          {label: 'Western Union', value: 'Western Union'},
+                          {label: 'bank transfer', value: 'bank transfer'},
+                          {label: 'other', value: 'other'},
+                          ]"
+                  ></v-select>
+                  <b-form-invalid-feedback>{{ errors[0] }}</b-form-invalid-feedback>
+                </b-form-group>
+              </validation-provider>
             </b-col>
 
             <!-- Note -->
@@ -456,7 +450,7 @@
                 variant="primary"
                 type="submit"
                 :disabled="paymentProcessing"
-              ><i class="i-Yes me-2 font-weight-bold"></i> {{$t('submit')}}</b-button>
+              >{{$t('submit')}}</b-button>
               <div v-once class="typo__p" v-if="paymentProcessing">
                 <div class="spinner sm spinner-primary mt-3"></div>
               </div>
@@ -499,7 +493,6 @@ export default {
       showDropdown: false,
       EditPaiementMode: false,
       Filter_Client: "",
-      Filter_sale:"",
       Filter_status: "",
       Filter_Payment: "",
       Filter_Ref: "",
@@ -510,7 +503,6 @@ export default {
       sales_return: [],
       sale_return: {},
       customers: [],
-      sales:[],
       warehouses: [],
       sale_return_id: "",
       factures: [],
@@ -525,7 +517,20 @@ export default {
         Reglement: "",
         notes: ""
       },
-     
+      email: {
+        to: "",
+        subject: "",
+        message: ""
+      },
+
+      emailPayment: {
+        id: "",
+        to: "",
+        subject: "",
+        message: "",
+        client_name: "",
+        Ref: ""
+      }
     };
   },
 
@@ -563,12 +568,6 @@ export default {
         {
           label: this.$t("warehouse"),
           field: "warehouse_name",
-          tdClass: "text-left",
-          thClass: "text-left"
-        },
-        {
-          label: this.$t("Sale_Ref"),
-          field: "sale_ref",
           tdClass: "text-left",
           thClass: "text-left"
         },
@@ -656,8 +655,6 @@ export default {
         field = "client_id";
       } else if (params[0].field == "warehouse_name") {
         field = "warehouse_id";
-      } else if (params[0].field == "sale_ref") {
-        field = "sale_id";
       } else {
         field = params[0].field;
       }
@@ -755,13 +752,12 @@ export default {
     Reset_Filter() {
       this.search = "";
       this.Filter_Client = "";
-      this.Filter_sale = "";
       this.Filter_status = "";
       this.Filter_Payment = "";
       this.Filter_Ref = "";
       this.Filter_date = "";
-      this.Filter_warehouse = "";
-      this.GET_Sales_Return(this.serverParams.page);
+      (this.Filter_warehouse = ""),
+        this.GET_Sales_Return(this.serverParams.page);
     },
 
     //---------------------------------------- Set To Strings-------------------------\\
@@ -775,8 +771,6 @@ export default {
         this.Filter_status = "";
       } else if (this.Filter_Payment === null) {
         this.Filter_Payment = "";
-      } else if (this.Filter_sale === null) {
-        this.Filter_sale = "";
       }
     },
 
@@ -801,7 +795,7 @@ export default {
       NProgress.set(0.1);
      
        axios
-        .get("return_sale_pdf/" + id, {
+        .get("Return_sale_PDF/" + id, {
           responseType: "blob", // important
           headers: {
             "Content-Type": "application/json"
@@ -833,7 +827,7 @@ export default {
       NProgress.set(0.1);
      
        axios
-        .get("payment_return_sale_pdf/" + id, {
+        .get("payment_Return_sale_PDF/" + id, {
           responseType: "blob", // important
           headers: {
             "Content-Type": "application/json"
@@ -863,8 +857,6 @@ export default {
       let columns = [
         { title: "Ref", dataKey: "Ref" },
         { title: "Client", dataKey: "client_name" },
-        { title: "Warehouse", dataKey: "warehouse_name" },
-        { title: "sale_ref", dataKey: "sale_ref" },
         { title: "Status", dataKey: "statut" },
         { title: "Total", dataKey: "GrandTotal" },
         { title: "Paid", dataKey: "paid_amount" },
@@ -874,6 +866,34 @@ export default {
       pdf.autoTable(columns, self.sales_return);
       pdf.text("Sales Return List", 40, 25);
       pdf.save("Sales Return.pdf");
+    },
+
+    //--------------------------------------Returns Excel -----------------------\\
+    Sale_Return_Excel() {
+      // Start the progress bar.
+      NProgress.start();
+      NProgress.set(0.1);
+      axios
+        .get("returns/sale/export/Excel", {
+          responseType: "blob", // important
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+        .then(response => {
+          const url = window.URL.createObjectURL(new Blob([response.data]));
+          const link = document.createElement("a");
+          link.href = url;
+          link.setAttribute("download", "Sales_Return.xlsx");
+          document.body.appendChild(link);
+          link.click();
+          // Complete the animation of the  progress bar.
+          setTimeout(() => NProgress.done(), 500);
+        })
+        .catch(() => {
+          // Complete the animation of the  progress bar.
+          setTimeout(() => NProgress.done(), 500);
+        });
     },
 
     Number_Order_Payment() {
@@ -980,6 +1000,104 @@ export default {
         });
     },
 
+     //---------SMS notification
+     Payment_SaleReturn_SMS(facture) {
+      // Start the progress bar.
+      NProgress.start();
+      NProgress.set(0.1);
+      axios
+        .post("payment/returns_sale/send/sms", {
+          id: facture.id,
+        })
+        .then(response => {
+          // Complete the animation of the  progress bar.
+          setTimeout(() => NProgress.done(), 500);
+          this.makeToast(
+            "success",
+            this.$t("Send_SMS"),
+            this.$t("Success")
+          );
+        })
+        .catch(error => {
+          // Complete the animation of the  progress bar.
+          setTimeout(() => NProgress.done(), 500);
+          this.makeToast("danger", this.$t("sms_config_invalid"), this.$t("Failed"));
+        });
+    },
+
+    //--------------------------------------------- Send Payment Sale Return to Email -------------------------------\\
+
+    EmailPayment(facture, sale_return) {
+      this.emailPayment.id = facture.id;
+      this.emailPayment.to = sale_return.client_email;
+      this.emailPayment.Ref = facture.Ref;
+      this.emailPayment.client_name = sale_return.client_name;
+      this.Send_Email_Payment();
+    },
+
+    Send_Email_Payment() {
+      // Start the progress bar.
+      NProgress.start();
+      NProgress.set(0.1);
+      axios
+        .post("payment/returns_sale/send/email", {
+          id: this.emailPayment.id,
+          to: this.emailPayment.to,
+          client_name: this.emailPayment.client_name,
+          Ref: this.emailPayment.Ref
+        })
+        .then(response => {
+          // Complete the animation of the  progress bar.
+          setTimeout(() => NProgress.done(), 500);
+
+          this.makeToast(
+            "success",
+            this.$t("Send.TitleEmail"),
+            this.$t("Success")
+          );
+        })
+        .catch(error => {
+          // Complete the animation of the  progress bar.
+          setTimeout(() => NProgress.done(), 500);
+          this.makeToast("danger", this.$t("SMTPIncorrect"), this.$t("Failed"));
+        });
+    },
+
+    //--------------------- Send Return in Email ------------------------\\
+
+    Sale_Return_Email(sale_return) {
+      this.email.to = sale_return.client_email;
+      this.email.Return_Ref = sale_return.Ref;
+      this.email.client_name = sale_return.client_name;
+      this.Send_Email(sale_return.id);
+    },
+
+    Send_Email(id) {
+      // Start the progress bar.
+      NProgress.start();
+      NProgress.set(0.1);
+      axios
+        .post("returns/sale/send/email", {
+          id: id,
+          to: this.email.to,
+          client_name: this.email.client_name,
+          Ref: this.email.Return_Ref
+        })
+        .then(response => {
+          // Complete the animation of the  progress bar.
+          setTimeout(() => NProgress.done(), 500);
+          this.makeToast(
+            "success",
+            this.$t("Send.TitleEmail"),
+            this.$t("Success")
+          );
+        })
+        .catch(error => {
+          // Complete the animation of the  progress bar.
+          setTimeout(() => NProgress.done(), 500);
+          this.makeToast("danger", this.$t("SMTPIncorrect"), this.$t("Failed"));
+        });
+    },
 
     //--------------------- Get All Returns ------------------------\\
     GET_Sales_Return(page) {
@@ -995,8 +1113,6 @@ export default {
             this.Filter_Ref +
             "&date=" +
             this.Filter_date +
-            "&sale_id=" +
-            this.Filter_sale +
             "&client_id=" +
             this.Filter_Client +
             "&statut=" +
@@ -1017,7 +1133,6 @@ export default {
         .then(response => {
           this.sales_return = response.data.sale_Return;
           this.customers = response.data.customers;
-          this.sales = response.data.sales;
           this.warehouses = response.data.warehouses;
           this.totalRows = response.data.totalRows;
 
@@ -1198,24 +1313,20 @@ export default {
           axios
             .delete("payment/returns_sale/" + id)
             .then(() => {
-
-              this.makeToast(
-                "success",
-                this.$t("Delete.PaymentDeleted"),
-                this.$t("Delete.Deleted")
+              this.$swal(
+                this.$t("Delete.Deleted"),
+                this.$t("Delete.PaymentDeleted")
               );
-            
               Fire.$emit("Delete_payment_Return_sale");
             })
             .catch(() => {
               // Complete the animation of the  progress bar.
               setTimeout(() => NProgress.done(), 500);
-                this.makeToast(
-                "warning",
+              this.$swal(
+                this.$t("Delete.Failed"),
                 this.$t("Delete.Therewassomethingwronge"),
-                this.$t("Delete.Failed")
+                "warning"
               );
-              
             });
         }
       });
@@ -1231,25 +1342,27 @@ export default {
         this.GET_Sales_Return(this.serverParams.page);
         // Complete the animation of the  progress bar.
         NProgress.done();
-      }, 800);
         this.$bvModal.hide("Add_Payment");
+      }, 500);
     });
 
     Fire.$on("Update_payment_Return_sale", () => {
       setTimeout(() => {
+        this.Get_Payments(this.sale_return_id);
         this.GET_Sales_Return(this.serverParams.page);
+        // Complete the animation of the  progress bar.
         NProgress.done();
         this.$bvModal.hide("Add_Payment");
-        this.$bvModal.hide("Show_payment");
-      }, 800);
+      }, 500);
     });
 
     Fire.$on("Delete_payment_Return_sale", () => {
       setTimeout(() => {
+        this.Get_Payments(this.sale_return_id);
         this.GET_Sales_Return(this.serverParams.page);
+        // Complete the animation of the  progress bar.
         NProgress.done();
-        this.$bvModal.hide("Show_payment");
-      }, 800);
+      }, 500);
     });
 
     Fire.$on("Delete_Return_sale", () => {
@@ -1257,7 +1370,7 @@ export default {
         this.GET_Sales_Return(this.serverParams.page);
         // Complete the animation of the  progress bar.
         NProgress.done();
-      }, 800);
+      }, 500);
     });
   }
 };

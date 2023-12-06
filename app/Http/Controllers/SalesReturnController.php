@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\Sale_Return;
 use App\Mail\ReturnMail;
 use App\Models\Client;
 use App\Models\Unit;
@@ -10,24 +11,19 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\product_warehouse;
 use App\Models\Role;
-use App\Models\Sale;
-use App\Models\SaleDetail;
 use App\Models\SaleReturn;
 use App\Models\SaleReturnDetails;
 use App\Models\Setting;
 use App\Models\Warehouse;
-use App\Models\User;
-use App\Models\UserWarehouse;
 use App\utils\helpers;
 use Carbon\Carbon;
+use Twilio\Rest\Client as Client_Twilio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
-use \Nwidart\Modules\Facades\Module;
-use App\Models\sms_gateway;
+use Maatwebsite\Excel\Facades\Excel;
 use DB;
 use PDF;
-use ArPHP\I18N\Arabic;
 
 class SalesReturnController extends BaseController
 {
@@ -55,7 +51,6 @@ class SalesReturnController extends BaseController
             3 => 'like',
             4 => '=',
             5 => '=',
-            6 => '=',
         );
         $columns = array(
             0 => 'Ref',
@@ -64,12 +59,11 @@ class SalesReturnController extends BaseController
             3 => 'payment_statut',
             4 => 'warehouse_id',
             5 => 'date',
-            6 => 'sale_id',
         );
         $data = array();
 
         // Check If User Has Permission View  All Records
-        $SaleReturn = SaleReturn::with('sale','facture', 'client', 'warehouse')
+        $SaleReturn = SaleReturn::with('facture', 'client', 'warehouse')
             ->where('deleted_at', '=', null)
             ->where(function ($query) use ($view_records) {
                 if (!$view_records) {
@@ -92,11 +86,6 @@ class SalesReturnController extends BaseController
                             });
                         })
                         ->orWhere(function ($query) use ($request) {
-                            return $query->whereHas('sale', function ($q) use ($request) {
-                                $q->where('Ref', 'LIKE', "%{$request->search}%");
-                            });
-                        })
-                        ->orWhere(function ($query) use ($request) {
                             return $query->whereHas('warehouse', function ($q) use ($request) {
                                 $q->where('name', 'LIKE', "%{$request->search}%");
                             });
@@ -105,9 +94,6 @@ class SalesReturnController extends BaseController
             });
 
         $totalRows = $Filtred->count();
-        if($perPage == "-1"){
-            $perPage = $totalRows;
-        }
         $SaleReturn = $Filtred->offset($offSet)
             ->limit($perPage)
             ->orderBy($order, $dir)
@@ -123,8 +109,6 @@ class SalesReturnController extends BaseController
             $item['statut'] = $Sale_Return->statut;
             $item['qte_retturn'] = $Sale_Return->qte_retour;
             $item['warehouse_name'] = $Sale_Return['warehouse']->name;
-            $item['sale_ref'] = $Sale_Return['sale']?$Sale_Return['sale']->Ref:'---';
-            $item['sale_id'] = $Sale_Return['sale']?$Sale_Return['sale']->id:NULL;
             $item['client_id'] = $Sale_Return['client']->id;
             $item['client_name'] = $Sale_Return['client']->name;
             $item['client_email'] = $Sale_Return['client']->email;
@@ -140,23 +124,13 @@ class SalesReturnController extends BaseController
         }
 
         $customers = client::where('deleted_at', '=', null)->get(['id', 'name']);
-        $sales = Sale::where('deleted_at', '=', null)->get(['id', 'Ref']);
-
-        //get warehouses assigned to user
-        $user_auth = auth()->user();
-        if($user_auth->is_all_warehouses){
-            $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
-        }else{
-            $warehouses_id = UserWarehouse::where('user_id', $user_auth->id)->pluck('warehouse_id')->toArray();
-            $warehouses = Warehouse::where('deleted_at', '=', null)->whereIn('id', $warehouses_id)->get(['id', 'name']);
-        }
+        $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
 
         return response()->json([
             'totalRows' => $totalRows,
             'sale_Return' => $data,
             'customers' => $customers,
             'warehouses' => $warehouses,
-            'sales' => $sales,
         ]);
 
     }
@@ -179,7 +153,6 @@ class SalesReturnController extends BaseController
             $order->date = $request->date;
             $order->Ref = $this->getNumberOrder();
             $order->client_id = $request->client_id;
-            $order->sale_id = $request->sale_id;
             $order->warehouse_id = $request->warehouse_id;
             $order->tax_rate = $request->tax_rate;
             $order->TaxNet = $request->TaxNet;
@@ -209,7 +182,6 @@ class SalesReturnController extends BaseController
                     'product_id' => $value['product_id'],
                     'product_variant_id' => $value['product_variant_id'],
                     'total' => $value['subtotal'],
-                    'imei_number' => $value['imei_number'],
                 ];
 
                 if ($order->statut == "received") {
@@ -262,6 +234,12 @@ class SalesReturnController extends BaseController
 
         $this->authorizeForUser($request->user('api'), 'update', SaleReturn::class);
 
+        request()->validate([
+            'warehouse_id' => 'required',
+            'client_id' => 'required',
+            'statut' => 'required',
+        ]);
+
         \DB::transaction(function () use ($request, $id) {
             $role = Auth::user()->roles()->first();
             $view_records = Role::findOrFail($role->id)->inRole('record_view');
@@ -294,12 +272,7 @@ class SalesReturnController extends BaseController
                     $product_unit_sale_id = Product::with('unitSale')
                     ->where('id', $value['product_id'])
                     ->first();
-
-                    if($product_unit_sale_id['unitSale']){
-                        $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
-                    }{
-                        $unit = NULL;
-                    }
+                    $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
                 }
 
                 if($value['sale_unit_id'] !== null){
@@ -346,10 +319,7 @@ class SalesReturnController extends BaseController
             // Update Data with New request
             foreach ($new_return_details as $key => $product_detail) {
                
-                $get_type_product = Product::where('id', $product_detail['product_id'])->first()->type;
-
-                if($product_detail['no_unit'] !== 0 || $get_type_product == 'is_service'){
-
+                if($product_detail['no_unit'] !== 0){
                     $unit_prod = Unit::where('id', $product_detail['sale_unit_id'])->first();
 
                     if ($request['statut'] == "received") {
@@ -398,7 +368,6 @@ class SalesReturnController extends BaseController
                     $orderDetails['product_id'] = $product_detail['product_id'];
                     $orderDetails['product_variant_id'] = $product_detail['product_variant_id'];
                     $orderDetails['total'] = $product_detail['subtotal'];
-                    $orderDetails['imei_number'] = $product_detail['imei_number'];
 
                     if (!in_array($product_detail['id'], $old_products_id)) {
                         SaleReturnDetails::Create($orderDetails);
@@ -420,6 +389,8 @@ class SalesReturnController extends BaseController
 
             $current_SaleReturn->update([
                 'date' => $request['date'],
+                'client_id' => $request['client_id'],
+                'warehouse_id' => $request['warehouse_id'],
                 'notes' => $request['notes'],
                 'statut' => $request['statut'],
                 'tax_rate' => $request['tax_rate'],
@@ -462,12 +433,7 @@ class SalesReturnController extends BaseController
                     $product_unit_sale_id = Product::with('unitSale')
                     ->where('id', $value['product_id'])
                     ->first();
-
-                    if($product_unit_sale_id['unitSale']){
-                        $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
-                    }{
-                        $unit = NULL;
-                    }
+                    $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
                 }
 
                 if ($current_SaleReturn->statut == "received") {
@@ -546,12 +512,7 @@ class SalesReturnController extends BaseController
                        $product_unit_sale_id = Product::with('unitSale')
                        ->where('id', $value['product_id'])
                        ->first();
-                       
-                       if($product_unit_sale_id['unitSale']){
-                        $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
-                    }{
-                        $unit = NULL;
-                    }
+                       $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
                    }
    
                    if ($current_SaleReturn->statut == "received") {
@@ -601,7 +562,14 @@ class SalesReturnController extends BaseController
         return response()->json(['success' => true]);
     }
 
+    //------------ Export Sale Return EXCEL  --------------\\
 
+    public function exportExcel(Request $request)
+    {
+        $this->authorizeForUser($request->user('api'), 'view', SaleReturn::class);
+
+        return Excel::download(new Sale_Return, 'Sales_Return.xlsx');
+    }
 
     //------------- GET Payments Sale Return-----------\\
 
@@ -633,7 +601,19 @@ class SalesReturnController extends BaseController
         return response()->json(['payments' => $payments, 'due' => $due]);
     }
 
-  
+    //------------- SEND Sale Return on EMAIL -----------\\
+
+    public function Send_Email(Request $request)
+    {
+
+        $this->authorizeForUser($request->user('api'), 'view', SaleReturn::class);
+
+        $SaleReturn = $request->all();
+        $pdf = $this->Return_pdf($request, $SaleReturn['id']);
+        $this->Set_config_mail(); // Set_config_mail => BaseController
+        $mail = Mail::to($request->to)->send(new ReturnMail($SaleReturn, $pdf));
+        return $mail;
+    }
 
     //------------ Reference Order Of Sale Return --------------\\
 
@@ -660,7 +640,7 @@ class SalesReturnController extends BaseController
         $this->authorizeForUser($request->user('api'), 'view', SaleReturn::class);
         $role = Auth::user()->roles()->first();
         $view_records = Role::findOrFail($role->id)->inRole('record_view');
-        $Sale_Return = SaleReturn::with('sale','details.product.unitSale')
+        $Sale_Return = SaleReturn::with('details.product.unitSale')
             ->where('deleted_at', '=', null)
             ->findOrFail($id);
 
@@ -673,8 +653,6 @@ class SalesReturnController extends BaseController
         }
 
         $return_details['Ref'] = $Sale_Return->Ref;
-        $return_details['sale_id'] = $Sale_Return->sale_id?$Sale_Return['sale']->id:NULL;
-        $return_details['sale_ref'] = $Sale_Return['sale']?$Sale_Return['sale']->Ref:'---';
         $return_details['date'] = $Sale_Return->date;
         $return_details['note'] = $Sale_Return->notes;
         $return_details['statut'] = $Sale_Return->statut;
@@ -686,7 +664,6 @@ class SalesReturnController extends BaseController
         $return_details['client_phone'] = $Sale_Return['client']->phone;
         $return_details['client_adr'] = $Sale_Return['client']->adresse;
         $return_details['client_email'] = $Sale_Return['client']->email;
-        $return_details['client_tax'] = $Sale_Return['client']->tax_number;
         $return_details['warehouse'] = $Sale_Return['warehouse']->name;
         $return_details['GrandTotal'] = number_format($Sale_Return->GrandTotal, 2, '.', '');
         $return_details['paid_amount'] = number_format($Sale_Return->paid_amount, 2, '.', '');
@@ -702,13 +679,7 @@ class SalesReturnController extends BaseController
                 $product_unit_sale_id = Product::with('unitSale')
                 ->where('id', $detail->product_id)
                 ->first();
-
-                if($product_unit_sale_id['unitSale']){
-                    $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
-                }{
-                    $unit = NULL;
-                }
-
+                $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
             }
             
             if ($detail->product_variant_id) {
@@ -716,19 +687,17 @@ class SalesReturnController extends BaseController
                 $productsVariants = ProductVariant::where('product_id', $detail->product_id)
                     ->where('id', $detail->product_variant_id)->first();
 
-                $data['code'] = $productsVariants->code;
-                $data['name'] = '['.$productsVariants->name . ']' . $detail['product']['name'];
-
+                $data['code'] = $productsVariants->name . '-' . $detail['product']['code'];
                
             } else {
                 $data['code'] = $detail['product']['code'];
-                $data['name'] = $detail['product']['name'];
             }
 
             $data['quantity'] = $detail->quantity;
             $data['total'] = $detail->total;
+            $data['name'] = $detail['product']['name'];
             $data['price'] = $detail->price;
-            $data['unit_sale'] = $unit?$unit->ShortName:'';
+            $data['unit_sale'] = $unit->ShortName;
 
             if ($detail->discount_method == '2') {
                 $data['DiscountNet'] = $detail->discount;
@@ -747,9 +716,6 @@ class SalesReturnController extends BaseController
                 $data['Net_price'] = ($detail->price - $data['DiscountNet']) / (($detail->TaxNet / 100) + 1);
                 $data['taxe'] = $detail->price - $data['Net_price'] - $data['DiscountNet'];
             }
-
-            $data['is_imei'] = $detail['product']['is_imei'];
-            $data['imei_number'] = $detail->imei_number;
 
             $details[] = $data;
 
@@ -769,139 +735,14 @@ class SalesReturnController extends BaseController
     public function create(Request $request)
     {
 
-        //
-
-    }
-
-    //---------------- edit ---------------\\
-
-    public function edit(Request $request , $id)
-    {
-
-        //
-
-    }
-
-    public function create_sell_return(Request $request , $id)
-    {
-
         $this->authorizeForUser($request->user('api'), 'create', SaleReturn::class);
-        $role = Auth::user()->roles()->first();
-        $view_records = Role::findOrFail($role->id)->inRole('record_view');
-        $SaleReturn = Sale::with('details.product.unitSale')
-            ->where('deleted_at', '=', null)
-            ->findOrFail($id);
 
-        $details = array();
-
-        // Check If User Has Permission view All Records
-        if (!$view_records) {
-            // Check If User->id === SaleReturn->id
-            $this->authorizeForUser($request->user('api'), 'check_record', $SaleReturn);
-        }
-
-        $Return_detail['client_id'] = $SaleReturn->client_id;
-        $Return_detail['warehouse_id'] = $SaleReturn->warehouse_id;
-        $Return_detail['sale_id'] = $SaleReturn->id;
-        $Return_detail['sale_ref'] = $SaleReturn->Ref;
-        $Return_detail['tax_rate'] = 0;
-        $Return_detail['TaxNet'] = 0;
-        $Return_detail['discount'] = 0;
-        $Return_detail['shipping'] = 0;
-        $Return_detail['statut'] = "received";
-        $Return_detail['notes'] = "";
-
-        $detail_id = 0;
-        foreach ($SaleReturn['details'] as $detail) {
-
-            //check if detail has sale_unit_id Or Null
-            if($detail->sale_unit_id !== null){
-                $unit = Unit::where('id', $detail->sale_unit_id)->first();
-                $data['no_unit'] = 1;
-            }else{
-                $product_unit_sale_id = Product::with('unitSale')
-                ->where('id', $detail->product_id)
-                ->first();
-
-                if($product_unit_sale_id['unitSale']){
-                    $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
-                }{
-                    $unit = NULL;
-                }
-
-                $data['no_unit'] = 0;
-            }
-
-            if ($detail->product_variant_id) {
-                $item_product = product_warehouse::where('product_id', $detail->product_id)
-                    ->where('product_variant_id', $detail->product_variant_id)
-                    ->where('deleted_at', '=', null)
-                    ->where('warehouse_id', $SaleReturn->warehouse_id)
-                    ->first();
-
-                $productsVariants = ProductVariant::where('product_id', $detail->product_id)
-                    ->where('id', $detail->product_variant_id)->first();
-
-                $item_product ? $data['del'] = 0 : $data['del'] = 1;
-                $data['product_variant_id'] = $detail->product_variant_id;
-                $data['code'] = $productsVariants->code;
-                $data['name'] = '['.$productsVariants->name . ']' . $detail['product']['name'];
-
-            } else {
-                $item_product = product_warehouse::where('product_id', $detail->product_id)
-                    ->where('warehouse_id', $SaleReturn->warehouse_id)
-                    ->where('deleted_at', '=', null)->where('product_variant_id', '=', null)
-                    ->first();
-
-                $item_product ? $data['del'] = 0 : $data['del'] = 1;
-                $data['product_variant_id'] = null;
-                $data['code'] = $detail['product']['code'];
-                $data['name'] = $detail['product']['name'];
-
-            }
-
-            $data['id'] = $detail->id;
-            $data['detail_id'] = $detail_id += 1;
-            $data['product_type'] = $detail['product']['type'];
-            $data['quantity'] = 0;
-            $data['sale_quantity'] = $detail->quantity;
-            $data['product_id'] = $detail->product_id;
-            $data['unitSale'] = $unit?$unit->ShortName:'';
-            $data['sale_unit_id'] = $unit?$unit->id:'';
-            $data['is_imei'] = $detail['product']['is_imei'];
-            $data['imei_number'] = $detail->imei_number;
-
-            if ($detail->discount_method == '2') {
-                $data['DiscountNet'] = $detail->discount;
-            } else {
-                $data['DiscountNet'] = $detail->price * $detail->discount / 100;
-            }
-
-            $tax_price = $detail->TaxNet * (($detail->price - $data['DiscountNet']) / 100);
-            $data['Unit_price'] = $detail->price;
-            $data['tax_percent'] = $detail->TaxNet;
-            $data['tax_method'] = $detail->tax_method;
-            $data['discount'] = $detail->discount;
-            $data['discount_Method'] = $detail->discount_method;
-
-            if ($detail->tax_method == '1') {
-
-                $data['Net_price'] = $detail->price - $data['DiscountNet'];
-                $data['taxe'] = $tax_price;
-                $data['subtotal'] = ($data['Net_price'] * $data['quantity']) + ($tax_price * $data['quantity']);
-            } else {
-                $data['Net_price'] = ($detail->price - $data['DiscountNet']) / (($detail->TaxNet / 100) + 1);
-                $data['taxe'] = $detail->price - $data['Net_price'] - $data['DiscountNet'];
-                $data['subtotal'] = ($data['Net_price'] * $data['quantity']) + ($tax_price * $data['quantity']);
-            }
-
-            $details[] = $data;
-        }
-
+        $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
+        $clients = Client::where('deleted_at', '=', null)->get(['id', 'name']);
 
         return response()->json([
-            'details' => $details,
-            'sale_return' => $Return_detail,
+            'clients' => $clients,
+            'warehouses' => $warehouses,
         ]);
 
     }
@@ -913,7 +754,7 @@ class SalesReturnController extends BaseController
 
         $details = array();
         $helpers = new helpers();
-        $Sale_Return = SaleReturn::with('sale','details.product.unitSale')
+        $Sale_Return = SaleReturn::with('details.product.unitSale')
             ->where('deleted_at', '=', null)
             ->findOrFail($id);
 
@@ -921,12 +762,10 @@ class SalesReturnController extends BaseController
         $return_details['client_phone'] = $Sale_Return['client']->phone;
         $return_details['client_adr'] = $Sale_Return['client']->adresse;
         $return_details['client_email'] = $Sale_Return['client']->email;
-        $return_details['client_tax'] = $Sale_Return['client']->tax_number;
         $return_details['TaxNet'] = number_format($Sale_Return->TaxNet, 2, '.', '');
         $return_details['discount'] = number_format($Sale_Return->discount, 2, '.', '');
         $return_details['shipping'] = number_format($Sale_Return->shipping, 2, '.', '');
         $return_details['statut'] = $Sale_Return->statut;
-        $return_details['sale_ref'] = $Sale_Return['sale']?$Sale_Return['sale']->Ref:'---';
         $return_details['Ref'] = $Sale_Return->Ref;
         $return_details['date'] = $Sale_Return->date;
         $return_details['GrandTotal'] = number_format($Sale_Return->GrandTotal, 2, '.', '');
@@ -943,29 +782,22 @@ class SalesReturnController extends BaseController
                 $product_unit_sale_id = Product::with('unitSale')
                 ->where('id', $detail->product_id)
                 ->first();
-
-                if($product_unit_sale_id['unitSale']){
-                    $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
-                }{
-                    $unit = NULL;
-                }
-
+                $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
             }
 
             if ($detail->product_variant_id) {
                 $productsVariants = ProductVariant::where('product_id', $detail->product_id)
                     ->where('id', $detail->product_variant_id)
                     ->first();
-                $data['code'] = $productsVariants->code;
-                $data['name'] = '['.$productsVariants->name . ']' . $detail['product']['name'];
+                $data['code'] = $productsVariants->name . '-' . $detail['product']['code'];
             } else {
                 $data['code'] = $detail['product']['code'];
-                $data['name'] = $detail['product']['name'];
             }
                 $data['detail_id'] = $detail_id += 1;
                 $data['quantity'] = number_format($detail->quantity, 2, '.', '');
                 $data['total'] = number_format($detail->total, 2, '.', '');
-                $data['unitSale'] = $unit?$unit->ShortName:'';
+                $data['name'] = $detail['product']['name'];
+                $data['unitSale'] = $unit->ShortName;
                 $data['price'] = number_format($detail->price, 2, '.', '');
 
             if ($detail->discount_method == '2') {
@@ -986,44 +818,31 @@ class SalesReturnController extends BaseController
                 $data['taxe'] = number_format($detail->price - $data['Net_price'] - $data['DiscountNet'], 2, '.', '');
             }
 
-            $data['is_imei'] = $detail['product']['is_imei'];
-            $data['imei_number'] = $detail->imei_number;
-
             $details[] = $data;
         }
 
         $settings = Setting::where('deleted_at', '=', null)->first();
         $symbol = $helpers->Get_Currency_Code();
 
-        $Html = view('pdf.Sales_Return_pdf', [
-            'symbol' => $symbol,
-            'setting' => $settings,
-            'return_sale' => $return_details,
-            'details' => $details,
-        ])->render();
-
-        $arabic = new Arabic();
-        $p = $arabic->arIdentify($Html);
-
-        for ($i = count($p)-1; $i >= 0; $i-=2) {
-            $utf8ar = $arabic->utf8Glyphs(substr($Html, $p[$i-1], $p[$i] - $p[$i-1]));
-            $Html = substr_replace($Html, $utf8ar, $p[$i-1], $p[$i] - $p[$i-1]);
-        }
-
-        $pdf = PDF::loadHTML($Html);
-
+        $pdf = \PDF::loadView('pdf.Sales_Return_pdf',
+            [
+                'symbol' => $symbol,
+                'setting' => $settings,
+                'return_sale' => $return_details,
+                'details' => $details,
+            ]);
         return $pdf->download('Sales_Return.pdf');
     }
 
     //------------- Show Form Edit Sale Return-----------\\
 
-    public function edit_sell_return(Request $request, $id, $sale_id)
+    public function edit(Request $request, $id)
     {
 
         $this->authorizeForUser($request->user('api'), 'update', SaleReturn::class);
         $role = Auth::user()->roles()->first();
         $view_records = Role::findOrFail($role->id)->inRole('record_view');
-        $SaleReturn = SaleReturn::with('sale','details.product.unitSale')
+        $SaleReturn = SaleReturn::with('details.product.unitSale')
             ->where('deleted_at', '=', null)
             ->findOrFail($id);
         $details = array();
@@ -1032,11 +851,27 @@ class SalesReturnController extends BaseController
             // Check If User->id === SaleReturn->id
             $this->authorizeForUser($request->user('api'), 'check_record', $SaleReturn);
         }
-      
-        $Return_detail['client_id'] = $SaleReturn->client_id;
-        $Return_detail['warehouse_id'] = $SaleReturn->warehouse_id;
-        $Return_detail['sale_id'] = $SaleReturn->sale_id?$SaleReturn['sale']->id:NULL;
-        $Return_detail['sale_ref'] = $SaleReturn['sale']?$SaleReturn['sale']->Ref:'---';
+
+        if ($SaleReturn->client_id) {
+            if (Client::where('id', $SaleReturn->client_id)->where('deleted_at', '=', null)->first()) {
+                $Return_detail['client_id'] = $SaleReturn->client_id;
+            } else {
+                $Return_detail['client_id'] = '';
+            }
+        } else {
+            $Return_detail['client_id'] = '';
+        }
+
+        if ($SaleReturn->warehouse_id) {
+            if (Warehouse::where('id', $SaleReturn->warehouse_id)->where('deleted_at', '=', null)->first()) {
+                $Return_detail['warehouse_id'] = $SaleReturn->warehouse_id;
+            } else {
+                $Return_detail['warehouse_id'] = '';
+            }
+        } else {
+            $Return_detail['warehouse_id'] = '';
+        }
+
         $Return_detail['date'] = $SaleReturn->date;
         $Return_detail['tax_rate'] = $SaleReturn->tax_rate;
         $Return_detail['TaxNet'] = $SaleReturn->TaxNet;
@@ -1056,13 +891,7 @@ class SalesReturnController extends BaseController
                 $product_unit_sale_id = Product::with('unitSale')
                 ->where('id', $detail->product_id)
                 ->first();
-
-                if($product_unit_sale_id['unitSale']){
-                    $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
-                }{
-                    $unit = NULL;
-                }
-
+                $unit = Unit::where('id', $product_unit_sale_id['unitSale']->id)->first();
                 $data['no_unit'] = 0;
             }
 
@@ -1078,9 +907,15 @@ class SalesReturnController extends BaseController
 
                 $item_product ? $data['del'] = 0 : $data['del'] = 1;
                 $data['product_variant_id'] = $detail->product_variant_id;
+                $data['code'] = $productsVariants->name . '-' . $detail['product']['code'];
 
-                $data['code'] = $productsVariants->code;
-                $data['name'] = '['.$productsVariants->name . ']' . $detail['product']['name'];
+                if ($unit && $unit->operator == '/') {
+                    $data['stock'] = $item_product ? $item_product->qte * $unit->operator_value : 0;
+                } else if ($unit && $unit->operator == '*') {
+                    $data['stock'] = $item_product ? $item_product->qte / $unit->operator_value : 0;
+                } else {
+                    $data['stock'] = 0;
+                }
 
             } else {
                 $item_product = product_warehouse::where('product_id', $detail->product_id)
@@ -1091,26 +926,24 @@ class SalesReturnController extends BaseController
                 $item_product ? $data['del'] = 0 : $data['del'] = 1;
                 $data['product_variant_id'] = null;
                 $data['code'] = $detail['product']['code'];
-                $data['name'] = $detail['product']['name'];
+
+                if ($unit && $unit->operator == '/') {
+                    $data['stock'] = $item_product ? $item_product->qte * $unit->operator_value : 0;
+                } else if ($unit && $unit->operator == '*') {
+                    $data['stock'] = $item_product ? $item_product->qte / $unit->operator_value : 0;
+                } else {
+                    $data['stock'] = 0;
+                }
 
             }
 
             $data['id'] = $detail->id;
             $data['detail_id'] = $detail_id += 1;
-
-            $sell_detail = SaleDetail::where('sale_id', $sale_id)
-            ->where('product_id', $detail->product_id)
-            ->where('product_variant_id', $detail->product_variant_id)
-            ->first();
-
-            $data['sale_quantity'] = $sell_detail->quantity;
-            $data['product_type'] = $detail['product']['type'];
             $data['quantity'] = $detail->quantity;
             $data['product_id'] = $detail->product_id;
-            $data['unitSale'] = $unit?$unit->ShortName:'';
-            $data['sale_unit_id'] = $unit?$unit->id:'';
-            $data['is_imei'] = $detail['product']['is_imei'];
-            $data['imei_number'] = $detail->imei_number;
+            $data['name'] = $detail['product']['name'];
+            $data['unitSale'] = $unit->ShortName;
+            $data['sale_unit_id'] = $unit->id;
 
             if ($detail->discount_method == '2') {
                 $data['DiscountNet'] = $detail->discount;
@@ -1139,12 +972,38 @@ class SalesReturnController extends BaseController
             $details[] = $data;
         }
 
+        $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
+        $clients = Client::where('deleted_at', '=', null)->get(['id', 'name']);
+
         return response()->json([
             'details' => $details,
             'sale_return' => $Return_detail,
+            'clients' => $clients,
+            'warehouses' => $warehouses,
         ]);
     }
 
-
+     //-------------------Sms Notifications -----------------\\
+     public function Send_SMS(Request $request)
+     {
+         $SaleReturn = SaleReturn::where('deleted_at', '=', null)->findOrFail($request->id);
+         $url = url('/api/Return_sale_PDF/' . $request->id);
+         $receiverNumber = $SaleReturn['client']->phone;
+         $message = "Dear" .' '.$SaleReturn['client']->name." \n We are contacting you in regard to a Sale Return #".$SaleReturn->Ref.' '.$url.' '. "that has been created on your account. \n We look forward to conducting future business with you.";
+         try {
+   
+             $account_sid = env("TWILIO_SID");
+             $auth_token = env("TWILIO_TOKEN");
+             $twilio_number = env("TWILIO_FROM");
+   
+             $client = new Client_Twilio($account_sid, $auth_token);
+             $client->messages->create($receiverNumber, [
+                 'from' => $twilio_number, 
+                 'body' => $message]);
+     
+         } catch (Exception $e) {
+             return response()->json(['message' => $e->getMessage()], 500);
+         }
+     }
 
 }

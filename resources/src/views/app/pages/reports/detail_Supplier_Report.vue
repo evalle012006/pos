@@ -11,7 +11,7 @@
           <i class="i-Full-Cart"></i>
           <div class="content">
             <p class="text-muted mt-2 mb-0">{{$t('Purchases')}}</p>
-            <p class="text-primary text-24 line-height-1 mb-2">{{provider.total_purchase}}</p>
+            <p class="text-primary text-24 line-height-1 mb-2">{{formatNumber(provider.total_purchase ,2)}}</p>
           </div>
         </b-card>
       </b-col>
@@ -54,7 +54,6 @@
       <b-col md="12">
         <b-card class="card mb-30" header-bg-variant="transparent ">
           <b-tabs active-nav-item-class="nav nav-tabs" content-class="mt-3">
-
             <!-- Purchases Table -->
             <b-tab :title="$t('Purchases')">
               <vue-good-table
@@ -64,11 +63,6 @@
                 :rows="purchases"
                 @on-page-change="PageChangePurchases"
                 @on-per-page-change="onPerPageChangePurchases"
-                @on-search="onSearch_purchases"
-                :search-options="{
-                  placeholder: $t('Search_this_table'),
-                  enabled: true,
-                }"
                 :pagination-options="{
                   enabled: true,
                   mode: 'records',
@@ -77,11 +71,6 @@
                 }"
                 styleClass="tableOne table-hover vgt-table"
               >
-               <div slot="table-actions" class="mt-2 mb-3">
-                <b-button @click="Purchase_PDF()" size="sm" variant="outline-success ripple m-1">
-                  <i class="i-File-Copy"></i> PDF
-                </b-button>
-              </div>
                 <template slot="table-row" slot-scope="props">
                   <div v-if="props.column.field == 'statut'">
                     <span
@@ -105,17 +94,9 @@
                     >{{$t('partial')}}</span>
                     <span v-else class="badge badge-outline-warning">{{$t('Unpaid')}}</span>
                   </div>
-                   <div v-else-if="props.column.field == 'Ref'">
-                    <router-link
-                      :to="'/app/purchases/detail/'+props.row.id"
-                    >
-                      <span class="ul-btn__text ml-1">{{props.row.Ref}}</span>
-                    </router-link>
-                  </div>
                 </template>
               </vue-good-table>
             </b-tab>
-            
             <!-- Returns Table -->
             <b-tab :title="$t('Returns')">
               <vue-good-table
@@ -125,11 +106,6 @@
                 :rows="returns_supplier"
                 @on-page-change="PageChangeReturns"
                 @on-per-page-change="onPerPageChangeReturns"
-                @on-search="onSearch_return_purchases"
-                :search-options="{
-                  placeholder: $t('Search_this_table'),
-                  enabled: true,
-                }"
                 :pagination-options="{
                   enabled: true,
                   mode: 'records',
@@ -138,11 +114,6 @@
                 }"
                 styleClass="tableOne table-hover vgt-table"
               >
-               <div slot="table-actions" class="mt-2 mb-3">
-                <b-button @click="Returns_Purchase_PDF()" size="sm" variant="outline-success ripple m-1">
-                  <i class="i-File-Copy"></i> PDF
-                </b-button>
-              </div>
                 <template slot="table-row" slot-scope="props">
                   <div v-if="props.column.field == 'statut'">
                     <span
@@ -163,24 +134,9 @@
                     >{{$t('partial')}}</span>
                     <span v-else class="badge badge-outline-warning">{{$t('Unpaid')}}</span>
                   </div>
-                   <div v-else-if="props.column.field == 'Ref'">
-                    <router-link
-                      :to="'/app/purchase_return/detail/'+props.row.id"
-                    >
-                      <span class="ul-btn__text ml-1">{{props.row.Ref}}</span>
-                    </router-link>
-                  </div>
-                  <div v-else-if="props.column.field == 'purchase_ref' && props.row.purchase_id">
-                    <router-link
-                      :to="'/app/purchases/detail/'+props.row.purchase_id"
-                    >
-                      <span class="ul-btn__text ml-1">{{props.row.purchase_ref}}</span>
-                    </router-link>
-                  </div>
                 </template>
               </vue-good-table>
             </b-tab>
-            
             <!-- Payments Table -->
             <b-tab :title="$t('PurchaseInvoice')">
               <vue-good-table
@@ -190,11 +146,6 @@
                 :rows="payments"
                 @on-page-change="PageChangePayments"
                 @on-per-page-change="onPerPageChangePayments"
-                @on-search="onSearch_payments"
-                :search-options="{
-                  placeholder: $t('Search_this_table'),
-                  enabled: true,
-                }"
                 :pagination-options="{
                   enabled: true,
                   mode: 'records',
@@ -202,13 +153,7 @@
                   prevLabel: 'prev',
                 }"
                 styleClass="tableOne table-hover vgt-table"
-              >
-               <div slot="table-actions" class="mt-2 mb-3">
-                <b-button @click="Payments_PDF()" size="sm" variant="outline-success ripple m-1">
-                  <i class="i-File-Copy"></i> PDF
-                </b-button>
-              </div>
-              </vue-good-table>
+              ></vue-good-table>
             </b-tab>
           </b-tabs>
         </b-card>
@@ -219,8 +164,6 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
 
 export default {
   data() {
@@ -238,11 +181,6 @@ export default {
       returns_supplier: [],
       payments: [],
       purchases: [],
-
-      search_purchases:"",
-      search_payments:"",
-      search_return_purchases:"",
-
       provider: {
         id: "",
         name: "",
@@ -266,19 +204,13 @@ export default {
           sortable: false
         },
         {
-          label: this.$t("Supplier"),
-          field: "provider_name",
+          label: this.$t("Status"),
+          field: "statut",
+          html: true,
           tdClass: "text-left",
           thClass: "text-left",
           sortable: false
         },
-        {
-          label: this.$t("warehouse"),
-          field: "warehouse_name",
-          tdClass: "text-left",
-          thClass: "text-left"
-        },
-       
         {
           label: this.$t("Total"),
           field: "GrandTotal",
@@ -299,14 +231,6 @@ export default {
           label: this.$t("Due"),
           field: "due",
           type: "decimal",
-          tdClass: "text-left",
-          thClass: "text-left",
-          sortable: false
-        },
-         {
-          label: this.$t("Status"),
-          field: "statut",
-          html: true,
           tdClass: "text-left",
           thClass: "text-left",
           sortable: false
@@ -338,18 +262,13 @@ export default {
           sortable: false
         },
         {
-          label: this.$t("warehouse"),
-          field: "warehouse_name",
+          label: this.$t("Status"),
+          field: "statut",
+          html: true,
           tdClass: "text-left",
-          thClass: "text-left"
+          thClass: "text-left",
+          sortable: false
         },
-        {
-          label: this.$t("Purchase_Ref"),
-          field: "purchase_ref",
-          tdClass: "text-left",
-          thClass: "text-left"
-        },
-       
         {
           label: this.$t("Total"),
           field: "GrandTotal",
@@ -370,14 +289,6 @@ export default {
           label: this.$t("Due"),
           field: "due",
           type: "decimal",
-          tdClass: "text-left",
-          thClass: "text-left",
-          sortable: false
-        },
-         {
-          label: this.$t("Status"),
-          field: "statut",
-          html: true,
           tdClass: "text-left",
           thClass: "text-left",
           sortable: false
@@ -435,64 +346,6 @@ export default {
   },
 
   methods: {
-
-      //---------------------- Purchases PDF -------------------------------\\
-    Purchase_PDF() {
-      var self = this;
-
-      let pdf = new jsPDF("p", "pt");
-      let columns = [
-        { title: "Ref", dataKey: "Ref" },
-        { title: "Supplier", dataKey: "provider_name" },
-        { title: "Warehouse", dataKey: "warehouse_name" },
-        { title: "Total", dataKey: "GrandTotal" },
-        { title: "Paid", dataKey: "paid_amount" },
-        { title: "Due", dataKey: "due" },
-        { title: "Status", dataKey: "statut" },
-        { title: "Status Payment", dataKey: "payment_status" }
-      ];
-      pdf.autoTable(columns, self.purchases);
-      pdf.text("Purchase List", 40, 25);
-      pdf.save("Purchase_List.pdf");
-    },
-
-       //----------------------------------------- Returns Purchase PDF -----------------------\\
-    Returns_Purchase_PDF() {
-      var self = this;
-
-      let pdf = new jsPDF("p", "pt");
-      let columns = [
-        { title: "Ref", dataKey: "Ref" },
-        { title: "Supplier", dataKey: "provider_name" },
-        { title: "Warehouse", dataKey: "warehouse_name" },
-        { title: "Purchase", dataKey: "purchase_ref" },
-        { title: "Total", dataKey: "GrandTotal" },
-        { title: "Paid", dataKey: "paid_amount" },
-        { title: "Due", dataKey: "due" },
-        { title: "Status", dataKey: "statut" },
-        { title: "Status Payment", dataKey: "payment_status" }
-      ];
-      pdf.autoTable(columns, self.returns_supplier);
-      pdf.text("Purchase Returns", 40, 25);
-      pdf.save("purchase_returns.pdf");
-    },
-
-       //----------------------------------- Sales PDF ------------------------------\\
-    Payments_PDF() {
-      var self = this;
-      let pdf = new jsPDF("p", "pt");
-      let columns = [
-        { title: "Date", dataKey: "date" },
-        { title: "Ref", dataKey: "Ref" },
-        { title: "Purchase", dataKey: "purchase_Ref" },
-        { title: "Reglement", dataKey: "Reglement" },
-        { title: "Amount", dataKey: "montant" },
-      ];
-      pdf.autoTable(columns, self.payments);
-      pdf.text("Payments List", 40, 25);
-      pdf.save("Payments_List.pdf");
-    },
-
     //------------------------------Formetted Numbers -------------------------\\
     formatNumber(number, dec) {
       const value = (typeof number === "string"
@@ -538,11 +391,6 @@ export default {
       }
     },
 
-    onSearch_purchases(value) {
-      this.search_purchases = value.searchTerm;
-      this.Get_Purchases(1);
-    },
-
     //--------------------------- Get Purchases By Provider -------------\\
     Get_Purchases(page) {
       axios
@@ -551,14 +399,12 @@ export default {
             page +
             "&limit=" +
             this.limit_purchases +
-            "&search=" +
-            this.search_purchases +
             "&id=" +
             this.$route.params.id
         )
         .then(response => {
           this.purchases = response.data.purchases;
-          this.totalRows_purchases = response.data.totalRows;
+          this.totalRows = response.data.totalRows;
           this.isLoading = false;
         })
         .catch(response => {
@@ -581,11 +427,6 @@ export default {
       }
     },
 
-     onSearch_payments(value) {
-      this.search_payments = value.searchTerm;
-      this.Get_Payments(1);
-    },
-
     //--------------------------- Get Payments By Provider -------------\\
     Get_Payments(page) {
       axios
@@ -594,14 +435,12 @@ export default {
             page +
             "&limit=" +
             this.limit_payments +
-            "&search=" +
-            this.search_payments +
             "&id=" +
             this.$route.params.id
         )
         .then(response => {
           this.payments = response.data.payments;
-          this.totalRows_payments = response.data.totalRows;
+          this.totalRows = response.data.totalRows;
         })
         .catch(response => {});
     },
@@ -621,11 +460,6 @@ export default {
       }
     },
 
-     onSearch_return_purchases(value) {
-      this.search_return_purchases = value.searchTerm;
-      this.Get_Returns(1);
-    },
-
     //--------------------------- Get Returns By Provider -------------\\
     Get_Returns(page) {
       axios
@@ -634,14 +468,12 @@ export default {
             page +
             "&limit=" +
             this.limit_payments +
-            "&search=" +
-            this.search_return_purchases +
             "&id=" +
             this.$route.params.id
         )
         .then(response => {
           this.returns_supplier = response.data.returns_supplier;
-          this.totalRows_returns = response.data.totalRows;
+          this.totalRows = response.data.totalRows;
         })
         .catch(response => {});
     }

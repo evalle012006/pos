@@ -1,8 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Models\User;
-use App\Models\UserWarehouse;
+
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Client;
@@ -32,7 +31,6 @@ class PosController extends BaseController
 
     public function CreatePOS(Request $request)
     {
-        // dd($request->all());
         $this->authorizeForUser($request->user('api'), 'Sales_pos', Sale::class);
 
         request()->validate([
@@ -57,7 +55,6 @@ class PosController extends BaseController
             $order->discount = $request->discount;
             $order->shipping = $request->shipping;
             $order->GrandTotal = $request->GrandTotal;
-            $order->notes = $request->notes;
             $order->statut = 'completed';
             $order->payment_statut = 'unpaid';
             $order->user_id = Auth::user()->id;
@@ -82,7 +79,6 @@ class PosController extends BaseController
                     'tax_method' => $value['tax_method'],
                     'discount' => $value['discount'],
                     'discount_method' => $value['discount_Method'],
-                    'imei_number' => $value['imei_number'],
                 ];
 
                 if ($value['product_variant_id'] !== null) {
@@ -141,86 +137,51 @@ class PosController extends BaseController
                         $Client = Client::whereId($request->client_id)->first();
                         Stripe\Stripe::setApiKey(config('app.STRIPE_SECRET'));
 
-                        // Check if the payment record exists
                         $PaymentWithCreditCard = PaymentWithCreditCard::where('customer_id', $request->client_id)->first();
                         if (!$PaymentWithCreditCard) {
-
-                            // Create a new customer and charge the customer with a new credit card
+                            // Create a Customer
                             $customer = \Stripe\Customer::create([
                                 'source' => $request->token,
-                                'email'  => $Client->email,
-                                'name'   => $Client->name,
+                                'email' => $Client->email,
                             ]);
 
                             // Charge the Customer instead of the card:
                             $charge = \Stripe\Charge::create([
-                                'amount'   => $request['amount'] * 100,
+                                'amount' => $request['amount'] * 100,
                                 'currency' => 'usd',
                                 'customer' => $customer->id,
                             ]);
                             $PaymentCard['customer_stripe_id'] = $customer->id;
 
-                        // Check if the payment record not exists
                         } else {
-
-                             // Retrieve the customer ID and card ID
                             $customer_id = $PaymentWithCreditCard->customer_stripe_id;
-                            $card_id = $request->card_id;
-
-                            // Charge the customer with the new credit card or the selected card
-                            if ($request->is_new_credit_card || $request->is_new_credit_card == 'true' || $request->is_new_credit_card === 1) {
-                                // Retrieve the customer
-                                $customer = \Stripe\Customer::retrieve($customer_id);
-
-                                // Create New Source
-                                $card = \Stripe\Customer::createSource(
-                                    $customer_id,
-                                    [
-                                      'source' => $request->token,
-                                    ]
-                                  );
-
-                                $charge = \Stripe\Charge::create([
-                                    'amount'   => $request['amount'] * 100,
-                                    'currency' => 'usd',
-                                    'customer' => $customer_id,
-                                    'source'   => $card->id,
-                                ]);
-                                $PaymentCard['customer_stripe_id'] = $customer_id;
-
-                            } else {
-                                $charge = \Stripe\Charge::create([
-                                    'amount'   => $request['amount'] * 100,
-                                    'currency' => 'usd',
-                                    'customer' => $customer_id,
-                                    'source'   => $card_id,
-                                ]);
-                                $PaymentCard['customer_stripe_id'] = $customer_id;
-                            }
+                            $charge = \Stripe\Charge::create([
+                                'amount' => $request['amount'] * 100,
+                                'currency' => 'usd',
+                                'customer' => $customer_id,
+                            ]);
+                            $PaymentCard['customer_stripe_id'] = $customer_id;
                         }
 
-
-
-
-                        $PaymentSale            = new PaymentSale();
-                        $PaymentSale->sale_id   = $order->id;
-                        $PaymentSale->Ref       = app('App\Http\Controllers\PaymentSalesController')->getNumberOrder();
-                        $PaymentSale->date      = Carbon::now();
+                        $PaymentSale = new PaymentSale();
+                        $PaymentSale->sale_id = $order->id;
+                        $PaymentSale->Ref = app('App\Http\Controllers\PaymentSalesController')->getNumberOrder();
+                        $PaymentSale->date = Carbon::now();
                         $PaymentSale->Reglement = $request->payment['Reglement'];
-                        $PaymentSale->montant   = $request['amount'];
-                        $PaymentSale->change    = $request['change'];
-                        $PaymentSale->notes     = $request->payment['notes'];
-                        $PaymentSale->user_id   = Auth::user()->id;
+                        $PaymentSale->montant = $request['amount'];
+                        $PaymentSale->change = $request['change'];
+                        $PaymentSale->notes = $request->payment['notes'];
+                        $PaymentSale->user_id = Auth::user()->id;
                         $PaymentSale->save();
 
                         $sale->update([
-                            'paid_amount'    => $total_paid,
+                            'paid_amount' => $total_paid,
                             'payment_statut' => $payment_statut,
                         ]);
 
                         $PaymentCard['customer_id'] = $request->client_id;
-                        $PaymentCard['payment_id']  = $PaymentSale->id;
-                        $PaymentCard['charge_id']   = $charge->id;
+                        $PaymentCard['payment_id'] = $PaymentSale->id;
+                        $PaymentCard['charge_id'] = $charge->id;
                         PaymentWithCreditCard::create($PaymentCard);
 
                         // Paying Method Cash
@@ -273,22 +234,11 @@ class PosController extends BaseController
             ->with('product', 'product.unitSale')
             ->where('deleted_at', '=', null)
             ->where(function ($query) use ($request) {
-                return $query->whereHas('product', function ($q) use ($request) {
-                    $q->where('not_selling', '=', 0);
-                })
-                ->where(function ($query) use ($request) {
-                    if ($request->stock == '1' && $request->product_service == '1') {
-                        return $query->where('qte', '>', 0)->orWhere('manage_stock', false);
-    
-                    }elseif($request->stock == '1' && $request->product_service == '0') {
-                        return $query->where('qte', '>', 0)->orWhere('manage_stock', true);
-    
-                    }else{
-                        return $query->where('manage_stock', true);
-                    }
-                });
-            })
+                if ($request->stock == '1') {
+                    return $query->where('qte', '>', 0);
+                }
 
+            })
         // Filter
             ->where(function ($query) use ($request) {
                 return $query->when($request->filled('category_id'), function ($query) use ($request) {
@@ -320,49 +270,32 @@ class PosController extends BaseController
                     ->first();
 
                 $item['product_variant_id'] = $product_warehouse->product_variant_id;
-                $item['Variant'] = '['.$productsVariants->name . ']' . $product_warehouse['product']->name;
-                $item['name'] = '['.$productsVariants->name . ']' . $product_warehouse['product']->name;
+                $item['Variant'] = $productsVariants->name;
+                $item['code'] = $productsVariants->name . '-' . $product_warehouse['product']->code;
 
-                $item['code'] = $productsVariants->code;
-                $item['barcode'] = $productsVariants->code;
-
-                $product_price = $product_warehouse['productVariant']->price;
-
-            } else {
+            } else if ($product_warehouse->product_variant_id === null) {
                 $item['product_variant_id'] = null;
                 $item['Variant'] = null;
                 $item['code'] = $product_warehouse['product']->code;
-                $item['name'] = $product_warehouse['product']->name;
-                $item['barcode'] = $product_warehouse['product']->code;
-
-                $product_price =  $product_warehouse['product']->price;
-
             }
             $item['id'] = $product_warehouse->product_id;
+            $item['barcode'] = $product_warehouse['product']->code;
+            $item['name'] = $product_warehouse['product']->name;
             $firstimage = explode(',', $product_warehouse['product']->image);
             $item['image'] = $firstimage[0];
 
-            if($product_warehouse['product']['unitSale']){
+            if ($product_warehouse['product']['unitSale']->operator == '/') {
+                $item['qte_sale'] = $product_warehouse->qte * $product_warehouse['product']['unitSale']->operator_value;
+                $price = $product_warehouse['product']->price / $product_warehouse['product']['unitSale']->operator_value;
 
-                if ($product_warehouse['product']['unitSale']->operator == '/') {
-                    $item['qte_sale'] = $product_warehouse->qte * $product_warehouse['product']['unitSale']->operator_value;
-                    $price = $product_price / $product_warehouse['product']['unitSale']->operator_value;
+            } else {
+                $item['qte_sale'] = $product_warehouse->qte / $product_warehouse['product']['unitSale']->operator_value;
+                $price = $product_warehouse['product']->price * $product_warehouse['product']['unitSale']->operator_value;
 
-                } else {
-                    $item['qte_sale'] = $product_warehouse->qte / $product_warehouse['product']['unitSale']->operator_value;
-                    $price = $product_price * $product_warehouse['product']['unitSale']->operator_value;
-
-                }
-
-            }else{
-                $item['qte_sale'] = $product_warehouse['product']->type!='is_service'?$product_warehouse->qte:'---';
-                $price = $product_price;
             }
+            $item['unitSale'] = $product_warehouse['product']['unitSale']->ShortName;
+            $item['qte'] = $product_warehouse->qte;
 
-            $item['unitSale'] = $product_warehouse['product']['unitSale']?$product_warehouse['product']['unitSale']->ShortName:'';
-            $item['qte'] = $product_warehouse['product']->type!='is_service'?$product_warehouse->qte:'---';
-            $item['product_type'] = $product_warehouse['product']->type;
-            
             if ($product_warehouse['product']->TaxNet !== 0.0) {
 
                 //Exclusive
@@ -393,54 +326,29 @@ class PosController extends BaseController
     public function GetELementPos(Request $request)
     {
         $this->authorizeForUser($request->user('api'), 'Sales_pos', Sale::class);
+
+        $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
         $clients = Client::where('deleted_at', '=', null)->get(['id', 'name']);
-        $settings = Setting::where('deleted_at', '=', null)->with('Client')->first();
-
-          //get warehouses assigned to user
-          $user_auth = auth()->user();
-          if($user_auth->is_all_warehouses){
-             $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
-
-             if ($settings->warehouse_id) {
-                if (Warehouse::where('id', $settings->warehouse_id)->where('deleted_at', '=', null)->first()) {
-                    $defaultWarehouse = $settings->warehouse_id;
-                } else {
-                    $defaultWarehouse = '';
-                }
+        $settings = Setting::where('deleted_at', '=', null)->first();
+        // $pos_settings = PosSetting::where('deleted_at', '=', null)->first();
+        if ($settings->warehouse_id) {
+            if (Warehouse::where('id', $settings->warehouse_id)->where('deleted_at', '=', null)->first()) {
+                $defaultWarehouse = $settings->warehouse_id;
             } else {
                 $defaultWarehouse = '';
             }
-
-          }else{
-             $warehouses_id = UserWarehouse::where('user_id', $user_auth->id)->pluck('warehouse_id')->toArray();
-             $warehouses = Warehouse::where('deleted_at', '=', null)->whereIn('id', $warehouses_id)->get(['id', 'name']);
-
-             if ($settings->warehouse_id) {
-                if (Warehouse::where('id', $settings->warehouse_id)->whereIn('id', $warehouses_id)->where('deleted_at', '=', null)->first()) {
-                    $defaultWarehouse = $settings->warehouse_id;
-                } else {
-                    $defaultWarehouse = '';
-                }
-            } else {
-                $defaultWarehouse = '';
-            }
-          }
-
-
-      
-        
+        } else {
+            $defaultWarehouse = '';
+        }
 
         if ($settings->client_id) {
             if (Client::where('id', $settings->client_id)->where('deleted_at', '=', null)->first()) {
                 $defaultClient = $settings->client_id;
-                $default_client_name = $settings['Client']->name;
             } else {
                 $defaultClient = '';
-                $default_client_name = '';
             }
         } else {
             $defaultClient = '';
-            $default_client_name = '';
         }
         $categories = Category::where('deleted_at', '=', null)->get(['id', 'name']);
         $brands = Brand::where('deleted_at', '=', null)->get();
@@ -449,9 +357,9 @@ class PosController extends BaseController
         return response()->json([
             'stripe_key' => $stripe_key,
             'brands' => $brands,
+            // 'pos_settings' => $pos_settings,
             'defaultWarehouse' => $defaultWarehouse,
             'defaultClient' => $defaultClient,
-            'default_client_name' => $default_client_name,
             'clients' => $clients,
             'warehouses' => $warehouses,
             'categories' => $categories,

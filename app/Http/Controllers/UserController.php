@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\UsersExport;
 use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\role_user;
 use App\Models\product_warehouse;
-use App\Models\Warehouse;
-use App\Models\UserWarehouse;
 use App\utils\helpers;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -17,7 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Intervention\Image\ImageManagerStatic as Image;
-use \Nwidart\Modules\Facades\Module;
+use Maatwebsite\Excel\Facades\Excel;
 
 class UserController extends BaseController
 {
@@ -63,21 +62,16 @@ class UserController extends BaseController
                 });
             });
         $totalRows = $Filtred->count();
-        if($perPage == "-1"){
-            $perPage = $totalRows;
-        }
         $users = $Filtred->offset($offSet)
             ->limit($perPage)
             ->orderBy($order, $dir)
             ->get();
 
         $roles = Role::where('deleted_at', null)->get(['id', 'name']);
-        $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
 
         return response()->json([
             'users' => $users,
             'roles' => $roles,
-            'warehouses' => $warehouses,
             'totalRows' => $totalRows,
         ]);
     }
@@ -150,12 +144,6 @@ class UserController extends BaseController
                 $filename = 'no_avatar.png';
             }
 
-            if($request['is_all_warehouses'] == '1' || $request['is_all_warehouses'] == 'true'){
-                $is_all_warehouses = 1;
-            }else{
-                $is_all_warehouses = 0;
-            }
-
             $User = new User;
             $User->firstname = $request['firstname'];
             $User->lastname  = $request['lastname'];
@@ -165,17 +153,12 @@ class UserController extends BaseController
             $User->password  = Hash::make($request['password']);
             $User->avatar    = $filename;
             $User->role_id   = $request['role'];
-            $User->is_all_warehouses   = $is_all_warehouses;
             $User->save();
 
             $role_user = new role_user;
             $role_user->user_id = $User->id;
             $role_user->role_id = $request['role'];
             $role_user->save();
-
-            if(!$User->is_all_warehouses){
-                $User->assignedWarehouses()->sync($request['assigned_to']);
-            }
     
         }, 10);
 
@@ -187,24 +170,12 @@ class UserController extends BaseController
     public function show($id){
         //
         
-    }
-
-    public function edit(Request $request, $id)
-    {
-        $this->authorizeForUser($request->user('api'), 'update', User::class);
-
-        $assigned_warehouses = UserWarehouse::where('user_id', $id)->pluck('warehouse_id')->toArray();
-        $warehouses = Warehouse::where('deleted_at', '=', null)->whereIn('id', $assigned_warehouses)->pluck('id')->toArray();
-
-        return response()->json([
-            'assigned_warehouses' => $warehouses,
-        ]);
-    }
+        }
 
     //------------- UPDATE  USER ---------\\
 
     public function update(Request $request, $id)
-    {        
+    {
         $this->authorizeForUser($request->user('api'), 'update', User::class);
         
         $this->validate($request, [
@@ -250,12 +221,6 @@ class UserController extends BaseController
                 $filename = $currentAvatar;
             }
 
-            if($request['is_all_warehouses'] == '1' || $request['is_all_warehouses'] == 'true'){
-                $is_all_warehouses = 1;
-            }else{
-                $is_all_warehouses = 0;
-            }
-
             User::whereId($id)->update([
                 'firstname' => $request['firstname'],
                 'lastname' => $request['lastname'],
@@ -265,9 +230,7 @@ class UserController extends BaseController
                 'password' => $pass,
                 'avatar' => $filename,
                 'statut' => $request['statut'],
-                'is_all_warehouses' => $is_all_warehouses,
                 'role_id' => $request['role'],
-
             ]);
 
             role_user::where('user_id' , $id)->update([
@@ -275,15 +238,20 @@ class UserController extends BaseController
                 'role_id' => $request['role'],
             ]);
 
-            $user_saved = User::where('deleted_at', '=', null)->findOrFail($id);
-            $user_saved->assignedWarehouses()->sync($request['assigned_to']);
-
         }, 10);
         
         return response()->json(['success' => true]);
 
     }
 
+    //------------- Export USERS to EXCEL ---------\\
+
+    public function exportExcel(Request $request)
+    {
+        $this->authorizeForUser($request->user('api'), 'view', User::class);
+
+        return Excel::download(new UsersExport, 'Users.xlsx');
+    }
 
     //------------- UPDATE PROFILE ---------\\
 

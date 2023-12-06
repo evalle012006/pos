@@ -41,16 +41,9 @@
           <b-button @click="Expense_PDF()" size="sm" variant="outline-success ripple m-1">
             <i class="i-File-Copy"></i> PDF
           </b-button>
-           <vue-excel-xlsx
-              class="btn btn-sm btn-outline-danger ripple m-1"
-              :data="expenses"
-              :columns="columns"
-              :file-name="'Expenses'"
-              :file-type="'xlsx'"
-              :sheet-name="'Expenses'"
-              >
-              <i class="i-File-Excel"></i> EXCEL
-          </vue-excel-xlsx>
+          <b-button @click="Expense_Excel()" size="sm" variant="outline-danger ripple m-1">
+            <i class="i-File-Excel"></i> EXCEL
+          </b-button>
           <router-link
             class="btn-sm btn btn-primary ripple btn-icon m-1"
             v-if="currentUserPermissions && currentUserPermissions.includes('expense_add')"
@@ -75,7 +68,6 @@
             </router-link>
             <a
               title="Delete"
-              class="cursor-pointer"
               v-b-tooltip.hover
               v-if="currentUserPermissions && currentUserPermissions.includes('expense_delete')"
               @click="Remove_Expense(props.row.id)"
@@ -259,6 +251,34 @@ export default {
       pdf.save("Expense_List.pdf");
     },
 
+    //----------------------- Expenses Excel -------------------------------\\
+    Expense_Excel() {
+      // Start the progress bar.
+      NProgress.start();
+      NProgress.set(0.1);
+      axios
+        .get("expenses/export/Excel", {
+          responseType: "blob", // important
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+        .then(response => {
+          const url = window.URL.createObjectURL(new Blob([response.data]));
+          const link = document.createElement("a");
+          link.href = url;
+          link.setAttribute("download", "List_Expense.xlsx");
+          document.body.appendChild(link);
+          link.click();
+          // Complete the animation of theprogress bar.
+          setTimeout(() => NProgress.done(), 500);
+        })
+        .catch(() => {
+          // Complete the animation of theprogress bar.
+          setTimeout(() => NProgress.done(), 500);
+        });
+    },
+
     //------ update Params Table
     updateParams(newProps) {
       this.serverParams = Object.assign({}, this.serverParams, newProps);
@@ -437,7 +457,7 @@ export default {
           NProgress.start();
           NProgress.set(0.1);
           axios
-            .post("expenses_delete_by_selection", {
+            .post("expenses/delete/by_selection", {
               selectedIds: this.selectedIds
             })
             .then(() => {

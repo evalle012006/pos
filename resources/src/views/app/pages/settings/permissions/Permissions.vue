@@ -38,7 +38,7 @@
           </router-link>
         </div>
 
-        <template slot="table-row" slot-scope="props" v-if="props.row.id !==1">
+        <template slot="table-row" slot-scope="props">
           <span v-if="props.column.field == 'actions'">
             <router-link 
               v-if="currentUserPermissions && currentUserPermissions.includes('permissions_edit')"
@@ -58,7 +58,6 @@
             </a>
           </span>
         </template>
-        
       </vue-good-table>
     </b-card>
   </div>

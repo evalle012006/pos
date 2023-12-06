@@ -41,9 +41,6 @@ class CategoryExpenseController extends BaseController
             });
 
         $totalRows = $ExpenseCategory->count();
-        if($perPage == "-1"){
-            $perPage = $totalRows;
-        }
         $ExpenseCategory = $ExpenseCategory->offset($offSet)
             ->limit($perPage)
             ->orderBy($order, $dir)

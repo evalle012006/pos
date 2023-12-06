@@ -12,7 +12,7 @@
                 <!-- warehouse -->
                 <b-col md="6" class="mb-3">
                   <validation-provider name="warehouse" :rules="{ required: true}">
-                    <b-form-group slot-scope="{ valid, errors }" :label="$t('warehouse') + ' ' + '*'">
+                    <b-form-group slot-scope="{ valid, errors }" :label="$t('warehouse')">
                       <v-select
                         :class="{'is-invalid': !!errors.length}"
                         :state="errors[0] ? false : (valid ? true : null)"
@@ -35,7 +35,7 @@
                     :rules="{ required: true}"
                     v-slot="validationContext"
                   >
-                    <b-form-group :label="$t('date') + ' ' + '*'">
+                    <b-form-group :label="$t('date')">
                       <b-form-input
                         :state="getValidationState(validationContext)"
                         aria-describedby="date-feedback"
@@ -56,11 +56,10 @@
                   <div id="autocomplete" class="autocomplete">
                     <input 
                      :placeholder="$t('Scan_Search_Product_by_Code_Name')"
-                       @input='e => search_input = e.target.value' 
-                      @keyup="search(search_input)"
+                      @keyup="search()" 
                       @focus="handleFocus"
                       @blur="handleBlur"
-                      ref="product_autocomplete"
+                      v-model="search_input"  
                       class="autocomplete-input" />
                     <ul class="autocomplete-result-list" v-show="focused">
                       <li class="autocomplete-result" v-for="product_fil in product_filter" @mousedown="SearchProduct(product_fil)">{{getResultValue(product_fil)}}</li>
@@ -167,7 +166,7 @@
                 </b-col>
                 <b-col md="12">
                   <b-form-group>
-                    <b-button variant="primary" :disabled="SubmitProcessing" @click="Submit_Adjustment"><i class="i-Yes me-2 font-weight-bold"></i> {{$t('submit')}}</b-button>
+                    <b-button variant="primary" :disabled="SubmitProcessing" @click="Submit_Adjustment">{{$t('submit')}}</b-button>
                     <div v-once class="typo__p" v-if="SubmitProcessing">
                         <div class="spinner sm spinner-primary mt-3"></div>
                       </div>
@@ -240,7 +239,7 @@ export default {
             this.timer = null;
       }
 
-      if (this.search_input.length < 2) {
+      if (this.search_input.length < 1) {
 
         return this.product_filter= [];
       }
@@ -292,11 +291,10 @@ export default {
           this.product.quantity = 1;
         }
         this.product.product_variant_id = result.product_variant_id;
-        this.Get_Product_Details(result.id, result.product_variant_id);
+        this.Get_Product_Details(result.id);
       }
 
       this.search_input= '';
-      this.$refs.product_autocomplete.value = "";
       this.product_filter = [];
     },
 
@@ -336,7 +334,7 @@ export default {
         NProgress.start();
         NProgress.set(0.1);
       axios
-        .get("get_Products_by_warehouse/" + id + "?stock=" + 0 + "&product_service=" + 0)
+        .get("Products/Warehouse/" + id + "?stock=" + 0)
          .then(response => {
             this.products = response.data;
              NProgress.done();
@@ -522,8 +520,8 @@ export default {
 
     //---------------------------------Get Product Details ------------------------\\
 
-    Get_Product_Details(product_id, variant_id) {
-      axios.get("/show_product_data/" + product_id +"/"+ variant_id).then(response => {
+    Get_Product_Details(product_id) {
+      axios.get("Products/" + product_id).then(response => {
         this.product.del = 0;
         this.product.id = 0;
         this.product.product_id = response.data.id;

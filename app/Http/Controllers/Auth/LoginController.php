@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
-use \Nwidart\Modules\Facades\Module;
 
 class LoginController extends Controller
 {
@@ -49,26 +48,5 @@ class LoginController extends Controller
     public function __construct()
     {
         $this->middleware('guest')->except('logout');
-    }
-
-    public function showLoginForm(){
-        $allModules = Module::all();
-        $allEnabledModules = Module::allEnabled();
-
-        $ModulesInstalled = [];
-        $ModulesEnabled = [];
-
-        foreach($allModules as $key => $modules_name){
-            $ModulesInstalled[] = $key;
-        }
-
-        foreach($allEnabledModules as $key => $modules_name){
-            $ModulesEnabled[] = $key;
-        }
-
-        return view('auth.login',[
-            'ModulesInstalled' => $ModulesInstalled, 
-            'ModulesEnabled' => $ModulesEnabled, 
-        ]);
     }
 }

@@ -31,6 +31,6 @@
     <div id="app">
     </div>
 
-    <script src="/js/main.min.js?v=4.0.6"></script>
+    <script src="/js/main.min.js?v=3.8.0"></script>
   </body>
 </html>

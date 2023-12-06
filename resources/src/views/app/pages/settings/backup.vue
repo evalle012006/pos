@@ -92,7 +92,7 @@ export default {
       NProgress.start();
       NProgress.set(0.1);
       axios
-        .get("generate_new_backup")
+        .get("GenerateBackup")
         .then(response => {
           Fire.$emit("Generate_Backup");
           // Complete the animation of the  progress bar.
@@ -111,7 +111,7 @@ export default {
       NProgress.start();
       NProgress.set(0.1);
       axios
-        .get("get_backup")
+        .get("GetBackup")
         .then(response => {
           this.backups = response.data.backups;
           this.totalRows = response.data.totalRows;
@@ -143,7 +143,7 @@ export default {
       }).then(result => {
         if (result.value) {
           axios
-            .delete("delete_backup/" + date)
+            .delete("DeleteBackup/" + date)
             .then(() => {
               this.$swal(
                 this.$t("Delete.Deleted"),

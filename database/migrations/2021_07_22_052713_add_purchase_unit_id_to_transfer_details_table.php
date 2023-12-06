@@ -15,7 +15,7 @@ class AddPurchaseUnitIdToTransferDetailsTable extends Migration
     {
         Schema::table('transfer_details', function (Blueprint $table) {
             $table->engine = 'InnoDB';
-            $table->integer('purchase_unit_id')->nullable()->after('cost');
+            $table->integer('purchase_unit_id')->nullable()->after('cost')->index('unit_sale_id_transfer');
             $table->foreign('purchase_unit_id', 'unit_sale_id_transfer')->references('id')->on('units')->onUpdate('RESTRICT')->onDelete('RESTRICT');
         });
     }

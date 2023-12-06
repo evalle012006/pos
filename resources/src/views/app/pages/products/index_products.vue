@@ -40,16 +40,9 @@
           <b-button @click="Product_PDF()" size="sm" variant="outline-success m-1">
             <i class="i-File-Copy"></i> PDF
           </b-button>
-          <vue-excel-xlsx
-              class="btn btn-sm btn-outline-danger ripple m-1"
-              :data="products"
-              :columns="columns"
-              :file-name="'products'"
-              :file-type="'xlsx'"
-              :sheet-name="'products'"
-              >
-              <i class="i-File-Excel"></i> EXCEL
-          </vue-excel-xlsx>
+          <b-button @click="Product_Excel()" size="sm" variant="outline-danger m-1">
+            <i class="i-File-Excel"></i> EXCEL
+          </b-button>
           <b-button
             @click="Show_import_products()"
             size="sm"
@@ -94,7 +87,6 @@
               @click="Remove_Product(props.row.id)"
               v-b-tooltip.hover
               title="Delete"
-              class="cursor-pointer"
             >
               <i class="i-Close-Window text-25 text-danger"></i>
             </a>
@@ -353,12 +345,6 @@ export default {
           thClass: "text-left"
         },
         {
-          label: this.$t("type"),
-          field: "type",
-          tdClass: "text-left",
-          thClass: "text-left"
-        },
-        {
           label: this.$t("Name_product"),
           field: "name",
           tdClass: "text-left",
@@ -370,7 +356,12 @@ export default {
           tdClass: "text-left",
           thClass: "text-left"
         },
-
+        {
+          label: this.$t("Categorie"),
+          field: "category",
+          tdClass: "text-left",
+          thClass: "text-left"
+        },
         {
           label: this.$t("Brand"),
           field: "brand",
@@ -378,25 +369,9 @@ export default {
           thClass: "text-left"
         },
         {
-          label: this.$t("Categorie"),
-          field: "category",
-          tdClass: "text-left",
-          thClass: "text-left"
-        },
-       
-        {
-          label: this.$t("Cost"),
-          field: "cost",
-          // type: "decimal",
-          html: true,
-          tdClass: "text-left",
-          thClass: "text-left"
-        },
-        {
           label: this.$t("Price"),
           field: "price",
-          // type: "decimal",
-          html: true,
+          type: "decimal",
           tdClass: "text-left",
           thClass: "text-left"
         },
@@ -409,7 +384,7 @@ export default {
         {
           label: this.$t("Quantity"),
           field: "quantity",
-          // type: "decimal",
+          type: "decimal",
           tdClass: "text-left",
           thClass: "text-left"
         },
@@ -431,11 +406,10 @@ export default {
 
       let pdf = new jsPDF("p", "pt");
       let columns = [
-        { title: "type", dataKey: "type" },
         { title: "name", dataKey: "name" },
         { title: "code", dataKey: "code" },
         { title: "category", dataKey: "category" },
-        { title: "cost", dataKey: "cost" },
+        { title: "brand", dataKey: "brand" },
         { title: "price", dataKey: "price" },
         { title: "unit", dataKey: "unit" },
         { title: "quantity", dataKey: "quantity" }
@@ -481,7 +455,7 @@ export default {
       self.ImportProcessing = true;
       self.data.append("products", self.import_products);
       axios
-        .post("products/import/csv", self.data)
+        .post("Products/import/csv", self.data)
         .then(response => {
           self.ImportProcessing = false;
           if (response.data.status === true) {
@@ -505,28 +479,14 @@ export default {
           self.ImportProcessing = false;
           // Complete the animation of theprogress bar.
           NProgress.done();
-          if (error.response && error.response.status === 422) {
-              var errors = error.response.data.errors;
-
-               this.makeToast(
-                "danger",
-                errors,
-                this.$t("Failed")
-              );
-
-              // Display validation errors to user
-            } else {
-               this.makeToast(
-              "danger",
-              this.$t("Please_follow_the_import_instructions"),
-              this.$t("Failed")
-            );
-            }
-         
+          this.makeToast(
+            "danger",
+            this.$t("Please_follow_the_import_instructions"),
+            this.$t("Failed")
+          );
         });
     },
 
-    
     //------ Toast
     makeToast(variant, msg, title) {
       this.$root.$bvToast.toast(msg, {
@@ -601,6 +561,34 @@ export default {
       this.Get_Products(this.serverParams.page);
     },
 
+    //------------------------------------ Products Excel ------------------------------\\
+    Product_Excel() {
+      // Start the progress bar.
+      NProgress.start();
+      NProgress.set(0.1);
+      axios
+        .get("Products/export/Excel", {
+          responseType: "blob", // important
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+        .then(response => {
+          const url = window.URL.createObjectURL(new Blob([response.data]));
+          const link = document.createElement("a");
+          link.href = url;
+          link.setAttribute("download", "List_Products.xlsx");
+          document.body.appendChild(link);
+          link.click();
+          // Complete the animation of theprogress bar.
+          NProgress.done();
+        })
+        .catch(() => {
+          // Complete the animation of theprogress bar.
+          NProgress.done();
+        });
+    },
+
     // Simply replaces null values with strings=''
     setToStrings() {
       if (this.Filter_category === null) {
@@ -618,7 +606,7 @@ export default {
       this.setToStrings();
       axios
         .get(
-          "products?page=" +
+          "Products?page=" +
             page +
             "&code=" +
             this.Filter_code +
@@ -674,7 +662,7 @@ export default {
           NProgress.start();
           NProgress.set(0.1);
           axios
-            .delete("products/" + id)
+            .delete("Products/" + id)
             .then(() => {
               this.$swal(
                 this.$t("Delete.Deleted"),
@@ -714,7 +702,7 @@ export default {
           NProgress.start();
           NProgress.set(0.1);
           axios
-            .post("products/delete/by_selection", {
+            .post("Products/delete/by_selection", {
               selectedIds: this.selectedIds
             })
             .then(() => {

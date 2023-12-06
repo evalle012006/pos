@@ -118,22 +118,6 @@
                 <i title="sa" class="flag-icon flag-icon-squared flag-icon-kr"></i>
                 <span class="title-lang">Korean</span>
               </a>
-             
-              <a @click="SetLocal('ba')">
-                <i title="sa" class="flag-icon flag-icon-squared flag-icon-bd"></i>
-                <span class="title-lang">Bangla</span>
-              </a>
-
-              <a @click="SetLocal('br')">
-                <i title="pt" class="flag-icon flag-icon-squared flag-icon-pt"></i>
-                <span class="title-lang">Portuguese</span>
-              </a>
-
-               <a @click="SetLocal('da')">
-                <i title="sa" class="flag-icon flag-icon-squared flag-icon-dk"></i>
-                <span class="title-lang">Danish</span>
-              </a>
-
             </div>
           </vue-perfect-scrollbar>
         </b-dropdown>
@@ -251,10 +235,7 @@ export default {
         "ru",
         "hn",
         "vn",
-        "kr",
-        "ba",
-        "br",
-        "da",
+        "kr"
       ],
       
       isDisplay: true,
@@ -263,6 +244,7 @@ export default {
       isMouseOnMegaMenu: true,
       isMegaMenuOpen: false,
       is_Load:false,
+      // alerts:0,
      
     };
   },

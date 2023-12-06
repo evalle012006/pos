@@ -41,29 +41,6 @@ class TestDbController extends Controller
         $db_pass = session('env.DB_PASSWORD');
         $db_port = session('env.DB_PORT');
 
-        if (!$db_name) {
-            return response()->json([
-                'Error' => 'No Database',
-                'State' => '999',
-            ]);
-        }
-
-        if (!$db_user) {
-            return response()->json([
-                'Error' => 'No Username',
-                'State' => '999',
-            ]);
-        }
-
-        if (!$db_port) {
-            return response()->json([
-                'Error' => 'No Port',
-                'State' => '999',
-            ]);
-        }
-
-     
-
         if (!$db_host) {
             return response()->json([
                 'Error' => 'No Host',

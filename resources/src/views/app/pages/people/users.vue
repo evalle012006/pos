@@ -32,16 +32,9 @@
           <b-button @click="Users_PDF()" size="sm" variant="outline-success m-1">
             <i class="i-File-Copy"></i> PDF
           </b-button>
-           <vue-excel-xlsx
-              class="btn btn-sm btn-outline-danger ripple m-1"
-              :data="users"
-              :columns="columns"
-              :file-name="'users'"
-              :file-type="'xlsx'"
-              :sheet-name="'users'"
-              >
-              <i class="i-File-Excel"></i> EXCEL
-          </vue-excel-xlsx>
+          <b-button @click="Users_Excel()" size="sm" variant="outline-danger m-1">
+            <i class="i-File-Excel"></i> EXCEL
+          </b-button>
           <b-button
             @click="New_User()"
             size="sm"
@@ -59,7 +52,6 @@
               @click="Edit_User(props.row)"
               v-if="currentUserPermissions && currentUserPermissions.includes('users_edit')"
               title="Edit"
-              class="cursor-pointer"
               v-b-tooltip.hover
             >
               <i class="i-Edit text-25 text-success"></i>
@@ -145,13 +137,12 @@
                 :rules="{ required: true , min:3 , max:30}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('Firstname') + ' ' + '*'">
+                <b-form-group :label="$t('Firstname')">
                   <b-form-input
                     :state="getValidationState(validationContext)"
                     aria-describedby="Firstname-feedback"
                     label="Firstname"
                     v-model="user.firstname"
-                    :placeholder="$t('Firstname')"
                   ></b-form-input>
                   <b-form-invalid-feedback id="Firstname-feedback">{{ validationContext.errors[0] }}</b-form-invalid-feedback>
                 </b-form-group>
@@ -165,13 +156,12 @@
                 :rules="{ required: true , min:3 , max:30}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('lastname') + ' ' + '*'">
+                <b-form-group :label="$t('lastname')">
                   <b-form-input
                     :state="getValidationState(validationContext)"
                     aria-describedby="lastname-feedback"
                     label="lastname"
                     v-model="user.lastname"
-                    :placeholder="$t('lastname')"
                   ></b-form-input>
                   <b-form-invalid-feedback id="lastname-feedback">{{ validationContext.errors[0] }}</b-form-invalid-feedback>
                 </b-form-group>
@@ -185,13 +175,12 @@
                 :rules="{ required: true , min:3 , max:30}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('username') + ' ' + '*'">
+                <b-form-group :label="$t('username')">
                   <b-form-input
                     :state="getValidationState(validationContext)"
                     aria-describedby="username-feedback"
                     label="username"
                     v-model="user.username"
-                    :placeholder="$t('username')"
                   ></b-form-input>
                   <b-form-invalid-feedback id="username-feedback">{{ validationContext.errors[0] }}</b-form-invalid-feedback>
                 </b-form-group>
@@ -205,13 +194,12 @@
                 :rules="{ required: true}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('Phone') + ' ' + '*'">
+                <b-form-group :label="$t('Phone')">
                   <b-form-input
                     :state="getValidationState(validationContext)"
                     aria-describedby="Phone-feedback"
                     label="Phone"
                     v-model="user.phone"
-                    :placeholder="$t('Phone')"
                   ></b-form-input>
                   <b-form-invalid-feedback id="Phone-feedback">{{ validationContext.errors[0] }}</b-form-invalid-feedback>
                 </b-form-group>
@@ -225,13 +213,12 @@
                 :rules="{ required: true}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('Email') + ' ' + '*'">
+                <b-form-group :label="$t('Email')">
                   <b-form-input
                     :state="getValidationState(validationContext)"
                     aria-describedby="Email-feedback"
                     label="Email"
                     v-model="user.email"
-                    :placeholder="$t('Email')"
                   ></b-form-input>
                   <b-form-invalid-feedback id="Email-feedback">{{ validationContext.errors[0] }}</b-form-invalid-feedback>
                   <b-alert
@@ -251,14 +238,13 @@
                 :rules="{ required: true , min:6 , max:14}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('password') + ' ' + '*'">
+                <b-form-group :label="$t('password')">
                   <b-form-input
                     :state="getValidationState(validationContext)"
                     aria-describedby="password-feedback"
                     label="password"
                     type="password"
                     v-model="user.password"
-                    :placeholder="$t('password')"
                   ></b-form-input>
                   <b-form-invalid-feedback id="password-feedback">{{ validationContext.errors[0] }}</b-form-invalid-feedback>
                 </b-form-group>
@@ -266,9 +252,9 @@
             </b-col>
 
             <!-- role -->
-            <b-col md="6" sm="12" class="mb-3">
+            <b-col md="6" sm="12">
               <validation-provider name="role" :rules="{ required: true}">
-                <b-form-group slot-scope="{ valid, errors }" :label="$t('RoleName') + ' ' + '*'">
+                <b-form-group slot-scope="{ valid, errors }" :label="$t('RoleName')">
                   <v-select
                     :class="{'is-invalid': !!errors.length}"
                     :state="errors[0] ? false : (valid ? true : null)"
@@ -283,7 +269,7 @@
             </b-col>
 
             <!-- Avatar -->
-            <b-col md="6" sm="12" class="mb-3">
+            <b-col md="6" sm="12">
               <validation-provider name="Avatar" ref="Avatar" rules="mimes:image/*|size:200">
                 <b-form-group slot-scope="{validate, valid, errors }" :label="$t('UserImage')">
                   <input
@@ -299,7 +285,7 @@
             </b-col>
 
             <!-- New Password -->
-            <b-col md="6" v-if="editmode" class="mb-3">
+            <b-col md="6" v-if="editmode">
               <validation-provider
                 name="New password"
                 :rules="{min:6 , max:14}"
@@ -320,28 +306,8 @@
               </validation-provider>
             </b-col>
 
-            <!-- assigned_warehouses -->
-            <b-col md="4" sm="4">
-              <h5>{{$t('Assigned_warehouses')}}</h5>
-            </b-col>
-
-            <b-col md="8" sm="8">
-              <label class="checkbox checkbox-primary mb-3"><input type="checkbox" v-model="user.is_all_warehouses"><h5>{{$t('All_Warehouses')}} <i v-b-tooltip.hover.bottom title="If 'All Warehouses' Selected , User Can access all data for the selected Warehouses" class="text-info font-weight-bold i-Speach-BubbleAsking"></i></h5><span class="checkmark"></span></label>
-               
-               <b-form-group class="mt-2" :label="$t('Some_warehouses')">
-                  <v-select
-                    multiple
-                    v-model="assigned_warehouses"
-                    @input="Selected_Warehouse"
-                    :reduce="label => label.value"
-                    :placeholder="$t('PleaseSelect')"
-                    :options="warehouses.map(warehouses => ({label: warehouses.name, value: warehouses.id}))"
-                  />
-                </b-form-group>
-            </b-col>
-
             <b-col md="12" class="mt-3">
-                <b-button variant="primary" type="submit"  :disabled="SubmitProcessing"><i class="i-Yes me-2 font-weight-bold"></i> {{$t('submit')}}</b-button>
+                <b-button variant="primary" type="submit"  :disabled="SubmitProcessing">{{$t('submit')}}</b-button>
                   <div v-once class="typo__p" v-if="SubmitProcessing">
                     <div class="spinner sm spinner-primary mt-3"></div>
                   </div>
@@ -389,7 +355,6 @@ export default {
       permissions: {},
       users: [],
       roles: [],
-      warehouses: [],
       data: new FormData(),
       user: {
         firstname: "",
@@ -401,10 +366,8 @@ export default {
         phone: "",
         statut: "",
         role_id: "",
-        avatar: "",
-        is_all_warehouses:1,
-      },
-      assigned_warehouses:[],
+        avatar: ""
+      }
     };
   },
 
@@ -547,16 +510,10 @@ export default {
       });
     },
 
-    Selected_Warehouse(value) {
-          if (!value.length) {
-              this.assigned_warehouses = [];
-          }
-      },
-
     //------ Checked Status User
     isChecked(user) {
       axios
-        .put("users_switch_activated/" + user.id, {
+        .put("users/Activated/" + user.id, {
           statut: user.statut,
           id: user.id
         })
@@ -613,6 +570,33 @@ export default {
       pdf.save("User_List.pdf");
     },
 
+    //------------------------ Users Excel ---------------------------\\
+    Users_Excel() {
+      // Start the progress bar.
+      NProgress.start();
+      NProgress.set(0.1);
+      axios
+        .get("users/export/Excel", {
+          responseType: "blob", // important
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+        .then(response => {
+          const url = window.URL.createObjectURL(new Blob([response.data]));
+          const link = document.createElement("a");
+          link.href = url;
+          link.setAttribute("download", "List_Users.xlsx");
+          document.body.appendChild(link);
+          link.click();
+          // Complete the animation of theprogress bar.
+          setTimeout(() => NProgress.done(), 500);
+        })
+        .catch(() => {
+          // Complete the animation of theprogress bar.
+          setTimeout(() => NProgress.done(), 500);
+        });
+    },
 
     // Simply replaces null values with strings=''
     setToStrings() {
@@ -651,7 +635,6 @@ export default {
         .then(response => {
           this.users = response.data.users;
           this.roles = response.data.roles;
-          this.warehouses = response.data.warehouses;
           this.totalRows = response.data.totalRows;
 
           // Complete the animation of theprogress bar.
@@ -678,25 +661,12 @@ export default {
     Edit_User(user) {
       this.Get_Users(this.serverParams.page);
       this.reset_Form();
-      this.Get_Data_Edit(user.id);
       this.user = user;
       this.user.NewPassword = null;
       this.editmode = true;
       this.$bvModal.show("New_User");
     },
 
-    //---------------------- Get_Data_Edit  ------------------------------\\
-      Get_Data_Edit(id) {
-        axios
-            .get("/users/"+id+"/edit")
-            .then(response => {
-                this.assigned_warehouses   = response.data.assigned_warehouses;
-            })
-            .catch(error => {
-            });
-    },
-
-        
     //------------------------------ Event Upload Avatar -------------------------------\\
     async onFileSelected(e) {
       const { valid } = await this.$refs.Avatar.validate(e);
@@ -719,18 +689,8 @@ export default {
       self.data.append("password", self.user.password);
       self.data.append("phone", self.user.phone);
       self.data.append("role", self.user.role_id);
-      self.data.append("is_all_warehouses", self.user.is_all_warehouses);
       self.data.append("avatar", self.user.avatar);
-
-      // append array assigned_warehouses
-      if (self.assigned_warehouses.length) {
-        for (var i = 0; i < self.assigned_warehouses.length; i++) {
-          self.data.append("assigned_to[" + i + "]", self.assigned_warehouses[i]);
-        }
-      }else{
-        self.data.append("assigned_to", []);
-      }
-
+     
       axios
         .post("users", self.data)
         .then(response => {
@@ -764,17 +724,7 @@ export default {
       self.data.append("phone", self.user.phone);
       self.data.append("role", self.user.role_id);
       self.data.append("statut", self.user.statut);
-      self.data.append("is_all_warehouses", self.user.is_all_warehouses);
       self.data.append("avatar", self.user.avatar);
-
-       // append array assigned_warehouses
-      if (self.assigned_warehouses.length) {
-        for (var i = 0; i < self.assigned_warehouses.length; i++) {
-          self.data.append("assigned_to[" + i + "]", self.assigned_warehouses[i]);
-        }
-      }else{
-        self.data.append("assigned_to", []);
-      }
       self.data.append("_method", "put");
 
       axios
@@ -811,10 +761,7 @@ export default {
         statut: "",
         role_id: "",
         avatar: "",
-        is_all_warehouses:1,
       };
-      this.data= new FormData();
-      this.assigned_warehouses = [];
       this.email_exist= "";
     },
 

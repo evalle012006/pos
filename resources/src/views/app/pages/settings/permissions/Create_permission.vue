@@ -1,8 +1,9 @@
 <template>
   <div class="main-content">
     <breadcumb :page="$t('Create_Permission')" :folder="$t('Settings')"/>
+    <div v-if="isLoading" class="loading_page spinner spinner-primary mr-3"></div>
 
-    <validation-observer ref="Create_Permission">
+    <validation-observer ref="Create_Permission" v-if="!isLoading">
       <b-form @submit.prevent="Submit_Permission">
         <b-row>
           <b-col lg="12" md="12" sm="12">
@@ -15,7 +16,7 @@
                     :rules="{ required: true}"
                     v-slot="validationContext"
                   >
-                    <b-form-group :label="$t('RoleName') + ' ' + '*'">
+                    <b-form-group :label="$t('RoleName')">
                       <b-form-input
                         :placeholder="$t('Enter_Role_Name')"
                         :state="getValidationState(validationContext)"
@@ -39,47 +40,6 @@
               </b-row>
 
               <b-row class="mt-4">
-                <!--dashboard -->
-                <b-col md="4">
-                  <b-card no-body class="ul-card__border-radius">
-                    <b-card-header header-tag="header" class="p-1" role="tab">
-                      <b-button
-                        class="card-title mb-0"
-                        block
-                        href="#"
-                        v-b-toggle.panel-dashboard
-                        variant="transparent"
-                      >{{$t('dashboard')}}</b-button>
-                    </b-card-header>
-                    <b-collapse
-                      id="panel-dashboard "
-                      :visible="true"
-                      accordion="my-dashboard"
-                      role="tabpanel"
-                    >
-                      <b-card-body>
-                        <b-card-text>
-                          <b-row>
-                            <!--dashboard -->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="dashboard"
-                                >
-                                <span>{{$t('dashboard')}} <i v-b-tooltip.hover.bottom title="if unchecked only welcome message will be displayed in dashboard" class="text-info text-15 font-weight-bold i-Speach-BubbleAsking"></i></span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-                          </b-row>
-                        </b-card-text>
-                      </b-card-body>
-                    </b-collapse>
-                  </b-card>
-                </b-col>
-
                 <!--Users -->
                 <b-col md="4">
                   <b-card no-body class="ul-card__border-radius">
@@ -350,35 +310,6 @@
                                   value="product_import"
                                 >
                                 <span>{{$t('import_products')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-                             <!--Category -->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="category"
-                                >
-                                <span>{{$t('Categories')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-                            <!--Brand  -->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input type="checkbox" checked v-model="permissions" value="brand">
-                                <span>{{$t('Brand')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-                             <!--Unit  -->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input type="checkbox" checked v-model="permissions" value="unit">
-                                <span>{{$t('Units')}}</span>
                                 <span class="checkmark"></span>
                               </label>
                             </b-col>
@@ -715,49 +646,6 @@
                                 <span class="checkmark"></span>
                               </label>
                             </b-col>
-
-                             <!--shipment -->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="shipment"
-                                >
-                                <span>{{$t('Shipments')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                             <!--Change product details -->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="edit_product_sale"
-                                >
-                                <span>{{$t('Change_product_details')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                              <!--edit tax and discount and shipping -->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="edit_tax_discount_shipping_sale"
-                                >
-                                <span>{{$t('edit_tax_and_discount_and_shipping')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
                           </b-row>
                         </b-card-text>
                       </b-card-body>
@@ -838,36 +726,6 @@
                                 <span class="checkmark"></span>
                               </label>
                             </b-col>
-
-                            <!--Change product details -->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="edit_product_purchase"
-                                >
-                                <span>{{$t('Change_product_details')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                             <!--edit tax and discount and shipping -->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="edit_tax_discount_shipping_purchase"
-                                >
-                                <span>{{$t('edit_tax_and_discount_and_shipping')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-
                           </b-row>
                         </b-card-text>
                       </b-card-body>
@@ -948,35 +806,6 @@
                                 <span class="checkmark"></span>
                               </label>
                             </b-col>
-
-                            <!--Change product details -->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="edit_product_quotation"
-                                >
-                                <span>{{$t('Change_product_details')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                            <!--edit tax and discount and shipping -->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="edit_tax_discount_shipping_quotation"
-                                >
-                                <span>{{$t('edit_tax_and_discount_and_shipping')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
                           </b-row>
                         </b-card-text>
                       </b-card-body>
@@ -1471,35 +1300,6 @@
                                 <span class="checkmark"></span>
                               </label>
                             </b-col>
-
-                            <!--pay_all_sell_due_at_a_time -->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="pay_due"
-                                >
-                                <span>{{$t('pay_all_sell_due_at_a_time')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                             <!--pay_sale_return_due -->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="pay_sale_return_due"
-                                >
-                                <span>{{$t('pay_all_sell_return_due_at_a_time')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
                           </b-row>
                         </b-card-text>
                       </b-card-body>
@@ -1594,35 +1394,6 @@
                                 <span class="checkmark"></span>
                               </label>
                             </b-col>
-
-                             <!--pay_all_purchase_due_at_a_time -->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="pay_supplier_due"
-                                >
-                                <span>{{$t('pay_all_purchase_due_at_a_time')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                            <!--pay_all_purchase_return_due_at_a_time -->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="pay_purchase_return_due"
-                                >
-                                <span>{{$t('pay_all_purchase_return_due_at_a_time')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
                           </b-row>
                         </b-card-text>
                       </b-card-body>
@@ -1795,286 +1566,6 @@
                                 <span class="checkmark"></span>
                               </label>
                             </b-col>
-
-                            <!--Top_Selling_Products-->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="Top_products"
-                                >
-                                <span>{{$t('Top_Selling_Products')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                             <!--Top_customers-->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="Top_customers"
-                                >
-                                <span>{{$t('Top_customers')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                             <!--users_report-->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="users_report"
-                                >
-                                <span>{{$t('Users_Report')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                             <!--stock_report-->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="stock_report"
-                                >
-                                <span>{{$t('stock_report')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                             <!--product_report-->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="product_report"
-                                >
-                                <span>{{$t('product_report')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                             <!--product_sales_report-->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="product_sales_report"
-                                >
-                                <span>{{$t('product_sales_report')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                            <!--product_purchases_report-->
-                            <b-col md="12">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="product_purchases_report"
-                                >
-                                <span>{{$t('Product_purchases_report')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-
-
-                          </b-row>
-                        </b-card-text>
-                      </b-card-body>
-                    </b-collapse>
-                  </b-card>
-                </b-col>
-
-                 <!-- hrm -->
-                <b-col md="4">
-                  <b-card no-body class="ul-card__border-radius">
-                    <b-card-header header-tag="header" class="p-1" role="tab">
-                      <b-button
-                        class="card-title mb-0"
-                        block
-                        href="#"
-                        v-b-toggle.panel-hrm
-                        variant="transparent"
-                      >{{$t('HRM')}}</b-button>
-                    </b-card-header>
-                    <b-collapse
-                      id="panel-hrm"
-                      :visible="true"
-                      accordion="my-accordion21"
-                      role="tabpanel"
-                    >
-                      <b-card-body>
-                        <b-card-text>
-                          <b-row>
-                             <!--view Employee-->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="view_employee"
-                                >
-                                <span>{{$t('view_employee')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-                            <!--add Employee-->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="add_employee"
-                                >
-                                <span>{{$t('Add_Employee')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-                            <!--edit employee -->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="edit_employee"
-                                >
-                                <span>{{$t('edit_employee')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-                             <!--delete employee -->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="delete_employee"
-                                >
-                                <span>{{$t('delete_employee')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                            <!--Company -->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="company"
-                                >
-                                <span>{{$t('Company')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                            <!--department -->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="department"
-                                >
-                                <span>{{$t('department')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                             <!--designation -->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="designation"
-                                >
-                                <span>{{$t('Designation')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                            <!--office_shift -->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="office_shift"
-                                >
-                                <span>{{$t('Office_Shift')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                            <!--attendance -->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="attendance"
-                                >
-                                <span>{{$t('Attendance')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                            <!--leave -->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="leave"
-                                >
-                                <span>{{$t('Leave_request')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                            <!--holiday -->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="holiday"
-                                >
-                                <span>{{$t('Holiday')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-                          
                           </b-row>
                         </b-card-text>
                       </b-card-body>
@@ -2083,7 +1574,7 @@
                 </b-col>
 
                 <!-- Settings -->
-                <b-col md="6">
+                <b-col md="4">
                   <b-card no-body class="ul-card__border-radius">
                     <b-card-header header-tag="header" class="p-1" role="tab">
                       <b-button
@@ -2112,81 +1603,31 @@
                                   v-model="permissions"
                                   value="setting_system"
                                 >
-                                <span>{{$t('SystemSettings')}} + {{$t('update_settings')}}</span>
+                                <span>{{$t('SystemSettings')}}</span>
                                 <span class="checkmark"></span>
                               </label>
                             </b-col>
-
-                            <!--sms_settings  -->
+                            <!--Category -->
                             <b-col md="6">
                               <label class="checkbox checkbox-outline-primary">
                                 <input
                                   type="checkbox"
                                   checked
                                   v-model="permissions"
-                                  value="sms_settings"
+                                  value="category"
                                 >
-                                <span>{{$t('sms_settings')}}</span>
+                                <span>{{$t('Categories')}}</span>
                                 <span class="checkmark"></span>
                               </label>
                             </b-col>
-
-                             <!--notification_template  -->
+                            <!--Brand  -->
                             <b-col md="6">
                               <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="notification_template"
-                                >
-                                <span>{{$t('notification_template')}}</span>
+                                <input type="checkbox" checked v-model="permissions" value="brand">
+                                <span>{{$t('Brand')}}</span>
                                 <span class="checkmark"></span>
                               </label>
                             </b-col>
-
-                            <!--pos_settings  -->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="pos_settings"
-                                >
-                                <span>{{$t('pos_settings')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                             <!--payment_gateway  -->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="payment_gateway"
-                                >
-                                <span>{{$t('payment_gateway')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
-                             <!--mail_settings  -->
-                            <b-col md="6">
-                              <label class="checkbox checkbox-outline-primary">
-                                <input
-                                  type="checkbox"
-                                  checked
-                                  v-model="permissions"
-                                  value="mail_settings"
-                                >
-                                <span>{{$t('mail_settings')}}</span>
-                                <span class="checkmark"></span>
-                              </label>
-                            </b-col>
-
                             <!--Currency  -->
                             <b-col md="6">
                               <label class="checkbox checkbox-outline-primary">
@@ -2213,6 +1654,14 @@
                                 <span class="checkmark"></span>
                               </label>
                             </b-col>
+                            <!--Unit  -->
+                            <b-col md="6">
+                              <label class="checkbox checkbox-outline-primary">
+                                <input type="checkbox" checked v-model="permissions" value="unit">
+                                <span>{{$t('Units')}}</span>
+                                <span class="checkmark"></span>
+                              </label>
+                            </b-col>
                             <!--Backup-->
                             <b-col md="6">
                               <label class="checkbox checkbox-outline-primary">
@@ -2231,7 +1680,7 @@
               <!-- End row -->
               
                <b-col md="12">
-                <b-button variant="primary" type="submit"  :disabled="SubmitProcessing"><i class="i-Yes me-2 font-weight-bold"></i> {{$t('submit')}}</b-button>
+                <b-button variant="primary" type="submit"  :disabled="SubmitProcessing">{{$t('submit')}}</b-button>
                   <div v-once class="typo__p" v-if="SubmitProcessing">
                     <div class="spinner sm spinner-primary mt-3"></div>
                   </div>
@@ -2293,7 +1742,19 @@ export default {
         solid: true
       });
     },
-   
+    //------------------------Check_Create_Page -------------------\\
+    Check_Create_Page() {
+      axios
+        .get("roles/check/Create_page")
+        .then(response => {
+          this.isLoading = false;
+        })
+        .catch(response => {
+          setTimeout(() => {
+            this.isLoading = false;
+          }, 500);
+        });
+    },
 
     //------------------------ Create Permissions -------------------\\
     Create_Permission() {
@@ -2327,6 +1788,7 @@ export default {
   }, //end Methods
 
   created: function() {
+    this.Check_Create_Page();
   }
 };
 </script>

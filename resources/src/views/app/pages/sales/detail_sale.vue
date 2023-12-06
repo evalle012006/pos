@@ -6,9 +6,8 @@
     <b-card v-if="!isLoading">
       <b-row>
         <b-col md="12" class="mb-5">
-
           <router-link
-            v-if="currentUserPermissions && currentUserPermissions.includes('Sales_edit') && sale.sale_has_return == 'no'"
+            v-if="currentUserPermissions && currentUserPermissions.includes('Sales_edit')"
             title="Edit"
             class="btn btn-success btn-icon ripple btn-sm"
             :to="{ name:'edit_sale', params: { id: $route.params.id } }"
@@ -16,8 +15,7 @@
             <i class="i-Edit"></i>
             <span>{{$t('EditSale')}}</span>
           </router-link>
-
-          <button @click="Send_Email()" class="btn btn-info btn-icon ripple btn-sm">
+          <button @click="Sale_Email()" class="btn btn-info btn-icon ripple btn-sm">
             <i class="i-Envelope-2"></i>
             {{$t('Email')}}
           </button>
@@ -34,7 +32,7 @@
             {{$t('print')}}
           </button>
           <button
-            v-if="currentUserPermissions && currentUserPermissions.includes('Sales_delete') && sale.sale_has_return == 'no'"
+            v-if="currentUserPermissions && currentUserPermissions.includes('Sales_delete')"
             @click="Delete_Sale()"
             class="btn btn-danger btn-icon ripple btn-sm"
           >
@@ -112,9 +110,7 @@
                   </thead>
                   <tbody>
                     <tr v-for="detail in details">
-                      <td><span>{{detail.code}} ({{detail.name}})</span>
-                        <p v-show="detail.is_imei && detail.imei_number !==null ">{{$t('IMEI_SN')}} : {{detail.imei_number}}</p>
-                      </td>
+                      <td>{{detail.code}} ({{detail.name}})</td>
                       <td>{{currentUser.currency}} {{formatNumber(detail.Net_price,3)}}</td>
                       <td>{{formatNumber(detail.quantity,2)}} {{detail.unit_sale}}</td>
                       <td>{{currentUser.currency}} {{formatNumber(detail.price,2)}}</td>
@@ -180,7 +176,7 @@
           <hr v-show="sale.note">
           <b-row class="mt-4">
            <b-col md="12">
-             <p>{{$t('sale_note')}} : {{sale.note}}</p>
+             <p>{{sale.note}}</p>
            </b-col>
         </b-row>
         </div>
@@ -190,7 +186,6 @@
 </template>
 
 <script>
-
 import { mapActions, mapGetters } from "vuex";
 import NProgress from "nprogress";
 
@@ -218,7 +213,19 @@ export default {
   },
 
   methods: {
-   
+    //------------------------------ Print -------------------------\\
+    print() {
+      var divContents = document.getElementById("print_Invoice").innerHTML;
+      var a = window.open("", "", "height=500, width=500");
+      a.document.write(
+        '<link rel="stylesheet" href="/assets_setup/css/bootstrap.css"><html>'
+      );
+      a.document.write("<body >");
+      a.document.write(divContents);
+      a.document.write("</body></html>");
+      a.document.close();
+      a.print();
+    },
 
     //----------------------------------- Invoice Sale PDF  -------------------------\\
     Sale_PDF() {
@@ -228,7 +235,7 @@ export default {
       let id = this.$route.params.id;
      
        axios
-        .get(`sale_pdf/${id}`, {
+        .get(`Sale_PDF/${id}`, {
           responseType: "blob", // important
           headers: {
             "Content-Type": "application/json"
@@ -273,11 +280,13 @@ export default {
       return `${value[0]}.${formated}`;
     },
 
-    //------------------------------ Print -------------------------\\
-    print() {
-      this.$htmlToPaper('print_Invoice');
+    //--------------------------------- Send Sale in Email ------------------------------\\
+    Sale_Email() {
+      this.email.to = this.sale.client_email;
+      this.email.Sale_Ref = this.sale.Ref;
+      this.email.client_name = this.sale.client_name;
+      this.Send_Email();
     },
-
 
     Send_Email() {
       // Start the progress bar.
@@ -285,8 +294,11 @@ export default {
       NProgress.set(0.1);
       let id = this.$route.params.id;
       axios
-        .post("sales_send_email", {
+        .post("sales/send/email", {
           id: id,
+          to: this.email.to,
+          client_name: this.email.client_name,
+          Ref: this.email.Sale_Ref
         })
         .then(response => {
           // Complete the animation of the  progress bar.
@@ -311,7 +323,7 @@ export default {
       NProgress.set(0.1);
       let id = this.$route.params.id;
       axios
-        .post("sales_send_sms", {
+        .post("sales/send/sms", {
           id: id,
         })
         .then(response => {

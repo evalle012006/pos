@@ -42,9 +42,8 @@ class AuthController extends BaseController
         $this->setCookie('Stocky_token', $tokenResult->accessToken);
 
         return response()->json([
-            'Stocky_token' => $tokenResult->accessToken,
-            'username' => Auth::User()->username,
-            'status' => true,
+            'Stocky_token' => $tokenResult->accessToken, 'username' => Auth::User()->username
+            , 'avatar' => Auth::User()->avatar, 'status' => true,
         ]);
     }
 

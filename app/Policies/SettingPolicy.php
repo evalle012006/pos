@@ -73,37 +73,6 @@ class SettingPolicy
         return $user->hasRole($permission->roles);
     }
 
-    public function sms_settings(User $user)
-    {
-        $permission = Permission::where('name', 'sms_settings')->first();
-        return $user->hasRole($permission->roles);
-    }
-
-    public function pos_settings(User $user)
-    {
-        $permission = Permission::where('name', 'pos_settings')->first();
-        return $user->hasRole($permission->roles);
-    }
-
-    public function payment_gateway(User $user)
-    {
-        $permission = Permission::where('name', 'payment_gateway')->first();
-        return $user->hasRole($permission->roles);
-    }
-
-    public function mail_settings(User $user)
-    {
-        $permission = Permission::where('name', 'mail_settings')->first();
-        return $user->hasRole($permission->roles);
-    }
-
-    public function notification_template(User $user)
-    {
-        $permission = Permission::where('name', 'notification_template')->first();
-        return $user->hasRole($permission->roles);
-    }
-
-
     /**
      * Determine whether the user can restore the model.
      *

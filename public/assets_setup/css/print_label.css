@@ -1,14 +1,3 @@
-
-@media print{
-	.barcode_non_a4 , .barcodea4{
-		margin: 0;
-	}
-
-	.barcode_non_a4 , .barcode_non_a4 .barcode-item, .barcodea4 , .barcodea4 .barcode-item{
-		border: none!important;
-	}
-}
-
 .barcodea4{
     width: 8.25in;
     height: 11.6in;
@@ -40,42 +29,30 @@
 	float: left;
 } 
 
-.barcode_non_a4 .head_barcode{
-	padding-left: 10px;
-	font-weight: bold;
-	text-align: left;
-}
-
-.barcodea4 .head_barcode{
-	padding-left: 10px;
-	font-weight: bold;
-	text-align: left;
-}
-
-.barcode-name{
+.barcode_non_a4 .barcode-name{
 	display: block;
 }
 
-.barcode-price{
+.barcodea4 .barcode-name{
 	display: block;
 }
 
-.barcodea4 .style24 .head_barcode{
+.barcodea4 .style24 .barcode-name{
 	font-size: 14px;
 }
 
-.barcodea4 .style18 .head_barcode{
+.barcodea4 .style18 .barcode-name{
 	font-size: 14px;
 }
 
-.barcodea4 .style12 .head_barcode{
+.barcodea4 .style12 .barcode-name{
 	font-size: 15px;
 }
 
-.barcode_non_a4 .head_barcode{
+.barcode_non_a4 .barcode-name{
 	font-size: 14px;
 }
-.barcode_non_a4 .style10 .head_barcode{
+.barcode_non_a4 .style10 .barcode-name{
 	font-size: 16px;
 }
 
@@ -156,4 +133,13 @@
 	line-height: 20px;
 } 
 
+@media print{
+	.barcode_non_a4 , .barcodea4{
+		margin: 0;
+	}
+
+	.barcode_non_a4 , .barcode_non_a4 .barcode-item, .barcodea4 , .barcodea4 .barcode-item{
+		border: none!important;
+	}
+}
 	

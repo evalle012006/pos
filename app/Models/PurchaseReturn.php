@@ -11,14 +11,13 @@ class PurchaseReturn extends Model
     protected $fillable = [
         'date', 'Ref', 'GrandTotal',
         'user_id', 'discount', 'shipping',
-        'warehouse_id','purchase_id', 'provider_id', 'notes', 'TaxNet', 'tax_rate', 'statut',
+        'warehouse_id', 'provider_id', 'notes', 'TaxNet', 'tax_rate', 'statut',
         'paid_amount', 'payment_statut', 'created_at', 'updated_at', 'deleted_at',
     ];
 
     protected $casts = [
         'GrandTotal' => 'double',
         'user_id' => 'integer',
-        'purchase_id' => 'integer',
         'provider_id' => 'integer',
         'warehouse_id' => 'integer',
         'discount' => 'double',
@@ -51,11 +50,6 @@ class PurchaseReturn extends Model
     public function warehouse()
     {
         return $this->belongsTo('App\Models\Warehouse');
-    }
-
-    public function purchase()
-    {
-        return $this->belongsTo('App\Models\Purchase');
     }
 
     public function facture()

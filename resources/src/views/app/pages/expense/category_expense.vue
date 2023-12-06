@@ -50,14 +50,12 @@
               @click="Edit_Category(props.row)"
               v-if="currentUserPermissions && currentUserPermissions.includes('expense_edit')"
               title="Edit"
-              class="cursor-pointer"
               v-b-tooltip.hover
             >
               <i class="i-Edit text-25 text-success"></i>
             </a>
             <a
               title="Delete"
-              class="cursor-pointer"
               v-b-tooltip.hover
               v-if="currentUserPermissions && currentUserPermissions.includes('expense_delete')"
               @click="Delete_Category(props.row.id)"
@@ -80,7 +78,7 @@
                 :rules="{ required: true}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('Namecategorie') + ' ' + '*'">
+                <b-form-group :label="$t('Namecategorie')">
                   <b-form-input
                     :state="getValidationState(validationContext)"
                     aria-describedby="category-feedback"
@@ -107,7 +105,7 @@
             </b-col>
            
             <b-col md="12" class="mt-3">
-              <b-button variant="primary" type="submit"  :disabled="SubmitProcessing"><i class="i-Yes me-2 font-weight-bold"></i> {{$t('submit')}}</b-button>
+              <b-button variant="primary" type="submit"  :disabled="SubmitProcessing">{{$t('submit')}}</b-button>
                 <div v-once class="typo__p" v-if="SubmitProcessing">
                   <div class="spinner sm spinner-primary mt-3"></div>
                 </div>
@@ -296,7 +294,7 @@ export default {
       NProgress.set(0.1);
       axios
         .get(
-          "expenses_category?page=" +
+          "expensescategory?page=" +
             page +
             "&SortField=" +
             this.serverParams.sort.field +
@@ -327,7 +325,7 @@ export default {
     Create_Category() {
       this.SubmitProcessing = true;
       axios
-        .post("expenses_category", {
+        .post("expensescategory", {
           name: this.category.name,
           description: this.category.description
         })
@@ -351,7 +349,7 @@ export default {
     Update_Category() {
       this.SubmitProcessing = true;
       axios
-        .put("expenses_category/" + this.category.id, {
+        .put("expensescategory/" + this.category.id, {
           name: this.category.name,
           description: this.category.description
         })
@@ -385,7 +383,7 @@ export default {
       }).then(result => {
         if (result.value) {
           axios
-            .delete("expenses_category/" + id)
+            .delete("expensescategory/" + id)
             .then(() => {
               this.$swal(
                 this.$t("Delete.Deleted"),
@@ -424,7 +422,7 @@ export default {
           NProgress.start();
           NProgress.set(0.1);
           axios
-            .post("expenses_category_delete_by_selection", {
+            .post("expensescategory/delete/by_selection", {
               selectedIds: this.selectedIds
             })
             .then(() => {

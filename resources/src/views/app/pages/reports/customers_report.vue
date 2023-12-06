@@ -3,17 +3,12 @@
     <breadcumb :page="$t('CustomersReport')" :folder="$t('Reports')"/>
 
     <div v-if="isLoading" class="loading_page spinner spinner-primary mr-3"></div>
-
     <b-card class="wrapper" v-if="!isLoading">
       <vue-good-table
         mode="remote"
         :columns="columns"
         :totalRows="totalRows"
-        :rows="rows"
-        :group-options="{
-          enabled: true,
-          headerPosition: 'bottom',
-        }"
+        :rows="clients"
         @on-page-change="onPageChange"
         @on-per-page-change="onPerPageChange"
         @on-sort-change="onSortChange"
@@ -22,7 +17,6 @@
         placeholder: $t('Search_this_table'),
         enabled: true,
       }"
-      
         :pagination-options="{
         enabled: true,
         mode: 'records',
@@ -33,11 +27,8 @@
       >
         <template slot="table-row" slot-scope="props">
           <span v-if="props.column.field == 'actions'">
-            <a title="PDF" class="cursor-pointer" v-b-tooltip.hover @click="Download_PDF(props.row , props.row.id)">
-              <i class="i-File-Copy text-25 text-success"></i>
-            </a>
             <router-link title="Report" :to="'/app/reports/detail_customer/'+props.row.id">
-             <i class="i-Eye text-25 text-info"></i>
+              <b-button variant="primary">{{$t('Reports')}}</b-button>
             </router-link>
           </span>
         </template>
@@ -49,7 +40,6 @@
 
 <script>
 import NProgress from "nprogress";
-import { mapActions, mapGetters } from "vuex";
 
 export default {
   metaInfo: {
@@ -70,22 +60,19 @@ export default {
       search: "",
       totalRows: "",
       clients: [],
-      client: {},
-      rows: [{
-          total_sales: 'Total',
-         
-          children: [
-             
-          ],
-      },],
+      client: {}
     };
   },
 
   computed: {
-    ...mapGetters(["currentUser"]),
     columns() {
       return [
-       
+        {
+          label: this.$t("CustomerCode"),
+          field: "code",
+          tdClass: "text-left",
+          thClass: "text-left"
+        },
         {
           label: this.$t("CustomerName"),
           field: "name",
@@ -109,7 +96,6 @@ export default {
           label: this.$t("Amount"),
           field: "total_amount",
           type: "decimal",
-          headerField: this.sumCount,
           tdClass: "text-left",
           thClass: "text-left",
           sortable: false
@@ -118,25 +104,14 @@ export default {
           label: this.$t("Paid"),
           field: "total_paid",
           type: "decimal",
-          headerField: this.sumCount2,
           tdClass: "text-left",
           thClass: "text-left",
           sortable: false
         },
         {
-          label: this.$t("Total_Sale_Due"),
+          label: this.$t("Due"),
           field: "due",
           type: "decimal",
-          headerField: this.sumCount3,
-          tdClass: "text-left",
-          thClass: "text-left",
-          sortable: false
-        },
-        {
-          label: this.$t("Total_Sell_Return_Due"),
-          field: "return_Due",
-          type: "decimal",
-          headerField: this.sumCount4,
           tdClass: "text-left",
           thClass: "text-left",
           sortable: false
@@ -154,71 +129,6 @@ export default {
   },
 
   methods: {
-
-    sumCount(rowObj) {
-     
-    	let sum = 0;
-      for (let i = 0; i < rowObj.children.length; i++) {
-        sum += rowObj.children[i].total_amount;
-      }
-      return sum;
-    },
-    sumCount2(rowObj) {
-     
-    	let sum = 0;
-      for (let i = 0; i < rowObj.children.length; i++) {
-        sum += rowObj.children[i].total_paid;
-      }
-      return sum;
-    },
-    sumCount3(rowObj) {
-     
-    	let sum = 0;
-      for (let i = 0; i < rowObj.children.length; i++) {
-        sum += rowObj.children[i].due;
-      }
-      return sum;
-    },
-
-    sumCount4(rowObj) {
-     
-    	let sum = 0;
-      for (let i = 0; i < rowObj.children.length; i++) {
-        sum += rowObj.children[i].return_Due;
-      }
-      return sum;
-    },
-
-    
-     //--------------------------- Download_PDF-------------------------------\\
-    Download_PDF(client , id) {
-      // Start the progress bar.
-      NProgress.start();
-      NProgress.set(0.1);
-     
-       axios
-        .get("report/client_pdf/" + id, {
-          responseType: "blob", // important
-          headers: {
-            "Content-Type": "application/json"
-          }
-        })
-        .then(response => {
-          const url = window.URL.createObjectURL(new Blob([response.data]));
-          const link = document.createElement("a");
-          link.href = url;
-          link.setAttribute("download", "report-" + client.name + ".pdf");
-          document.body.appendChild(link);
-          link.click();
-          // Complete the animation of the  progress bar.
-          setTimeout(() => NProgress.done(), 500);
-        })
-        .catch(() => {
-          // Complete the animation of the  progress bar.
-          setTimeout(() => NProgress.done(), 500);
-        });
-    },
-
     //---- update Params Table
     updateParams(newProps) {
       this.serverParams = Object.assign({}, this.serverParams, newProps);
@@ -295,7 +205,6 @@ export default {
         .then(response => {
           this.clients = response.data.report;
           this.totalRows = response.data.totalRows;
-          this.rows[0].children = this.clients;
           // Complete the animation of theprogress bar.
           NProgress.done();
           this.isLoading = false;
@@ -314,7 +223,6 @@ export default {
 
   created: function() {
     this.Get_Client_Report(1);
-    
   }
 };
 </script>

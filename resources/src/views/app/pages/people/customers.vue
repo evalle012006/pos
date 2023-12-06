@@ -27,7 +27,7 @@
         nextLabel: 'next',
         prevLabel: 'prev',
       }"
-       :styleClass="showDropdown?'tableOne table-hover vgt-table full-height':'tableOne table-hover vgt-table non-height'"
+        styleClass="table-hover tableOne vgt-table"
       >
         <div slot="selected-row-actions">
           <button class="btn btn-danger btn-sm" @click="delete_by_selected()">{{$t('Del')}}</button>
@@ -40,16 +40,9 @@
           <b-button @click="clients_PDF()" size="sm" variant="outline-success m-1">
             <i class="i-File-Copy"></i> PDF
           </b-button>
-           <vue-excel-xlsx
-              class="btn btn-sm btn-outline-danger ripple m-1"
-              :data="clients"
-              :columns="columns"
-              :file-name="'clients'"
-              :file-type="'xlsx'"
-              :sheet-name="'clients'"
-              >
-              <i class="i-File-Excel"></i> EXCEL
-          </vue-excel-xlsx>
+          <b-button @click="clients_Excel()" size="sm" variant="outline-danger m-1">
+            <i class="i-File-Excel"></i> EXCEL
+          </b-button>
           <b-button
             @click="Show_import_clients()"
             size="sm"
@@ -72,73 +65,27 @@
 
         <template slot="table-row" slot-scope="props">
           <span v-if="props.column.field == 'actions'">
-            <div>
-              <b-dropdown
-                id="dropdown-right"
-                variant="link"
-                text="right align"
-                toggle-class="text-decoration-none"
-                size="lg"
-                right
-                no-caret
-              >
-                <template v-slot:button-content class="_r_btn border-0">
-                  <span class="_dot _r_block-dot bg-dark"></span>
-                  <span class="_dot _r_block-dot bg-dark"></span>
-                  <span class="_dot _r_block-dot bg-dark"></span>
-                </template>
-
-                <b-dropdown-item
-                  v-if="props.row.due > 0 && currentUserPermissions && currentUserPermissions.includes('pay_due')"
-                  @click="Pay_due(props.row)"
-                >
-                  <i class="nav-icon i-Dollar font-weight-bold mr-2"></i>
-                  {{$t('pay_all_sell_due_at_a_time')}}
-                </b-dropdown-item>
-
-                <b-dropdown-item
-                  v-if="props.row.return_Due > 0 && currentUserPermissions && currentUserPermissions.includes('pay_sale_return_due')"
-                  @click="Pay_return_due(props.row)"
-                >
-                  <i class="nav-icon i-Dollar font-weight-bold mr-2"></i>
-                  {{$t('pay_all_sell_return_due_at_a_time')}}
-                </b-dropdown-item>
-
-                 <b-dropdown-item
-                  @click="showDetails(props.row)"
-                >
-                  <i class="nav-icon i-Eye font-weight-bold mr-2"></i>
-                  {{$t('Customer_details')}}
-                </b-dropdown-item>
-               
-                <b-dropdown-item
-                  @click="show_credit_card_details(props.row.id)"
-                >
-                  <i class="nav-icon i-Credit-Card2 font-weight-bold mr-2"></i>
-                  {{$t('credit_card_info')}}
-                </b-dropdown-item>
-
-                <b-dropdown-item
-                 v-if="currentUserPermissions && currentUserPermissions.includes('Customers_edit')"
-                  @click="Edit_Client(props.row)"
-                >
-                  <i class="nav-icon i-Edit font-weight-bold mr-2"></i>
-                  {{$t('Edit_Customer')}}
-                </b-dropdown-item>
-
-                <b-dropdown-item
-                  title="Delete"
-                  v-if="currentUserPermissions.includes('Customers_delete')"
-                  @click="Remove_Client(props.row.id)"
-                >
-                  <i class="nav-icon i-Close-Window font-weight-bold mr-2"></i>
-                  {{$t('Delete_Customer')}}
-                </b-dropdown-item>
-                </b-dropdown>
-            </div>
+            <a title="View" v-b-tooltip.hover @click="showDetails(props.row)">
+              <i class="i-Eye text-25 text-info"></i>
+            </a>
+            <a
+              @click="Edit_Client(props.row)"
+              v-if="currentUserPermissions && currentUserPermissions.includes('Customers_edit')"
+              title="Edit"
+              v-b-tooltip.hover
+            >
+              <i class="i-Edit text-25 text-success"></i>
+            </a>
+            <a
+              title="Delete"
+              v-b-tooltip.hover
+              v-if="currentUserPermissions && currentUserPermissions.includes('Customers_delete')"
+              @click="Remove_Client(props.row.id)"
+            >
+              <i class="i-Close-Window text-25 text-danger"></i>
+            </a>
           </span>
         </template>
-
       </vue-good-table>
     </div>
 
@@ -190,270 +137,6 @@
       </div>
     </b-sidebar>
 
-    <!-- Modal Pay_due-->
-    <validation-observer ref="ref_pay_due">
-      <b-modal
-        hide-footer
-        size="md"
-        id="modal_Pay_due"
-        title="Pay Due"
-      >
-        <b-form @submit.prevent="Submit_Payment_sell_due">
-          <b-row>
-          
-            <!-- Paying Amount  -->
-            <b-col lg="6" md="12" sm="12">
-              <validation-provider
-                name="Amount"
-                :rules="{ required: true , regex: /^\d*\.?\d*$/}"
-                v-slot="validationContext"
-              >
-                <b-form-group :label="$t('Paying_Amount') + ' ' + '*'">
-                  <b-form-input
-                   @keyup="Verified_paidAmount(payment.amount)"
-                    label="Amount"
-                    :placeholder="$t('Paying_Amount')"
-                    v-model.number="payment.amount"
-                    :state="getValidationState(validationContext)"
-                    aria-describedby="Amount-feedback"
-                  ></b-form-input>
-                  <b-form-invalid-feedback id="Amount-feedback">{{ validationContext.errors[0] }}</b-form-invalid-feedback>
-                  <span class="badge badge-danger">{{$t('Due')}} : {{currentUser.currency}} {{payment.due}}</span>
-                </b-form-group>
-              </validation-provider>
-            </b-col>
-
-
-            <!-- Payment choice -->
-            <b-col lg="6" md="12" sm="12">
-              <validation-provider name="Payment choice" :rules="{ required: true}">
-                <b-form-group slot-scope="{ valid, errors }" :label="$t('Paymentchoice')+ ' ' + '*'">
-                  <v-select
-                    :class="{'is-invalid': !!errors.length}"
-                    :state="errors[0] ? false : (valid ? true : null)"
-                    v-model="payment.Reglement"
-                    :reduce="label => label.value"
-                    :placeholder="$t('PleaseSelect')"
-                    :options="
-                          [
-                          {label: 'Cash', value: 'Cash'},
-                          {label: 'credit card', value: 'credit card'},
-                          {label: 'TPE', value: 'tpe'},
-                          {label: 'cheque', value: 'cheque'},
-                          {label: 'Western Union', value: 'Western Union'},
-                          {label: 'bank transfer', value: 'bank transfer'},
-                          {label: 'other', value: 'other'},
-                          ]"
-                  ></v-select>
-                  <b-form-invalid-feedback>{{ errors[0] }}</b-form-invalid-feedback>
-                </b-form-group>
-              </validation-provider>
-            </b-col>
-
-            <!-- Note -->
-            <b-col lg="12" md="12" sm="12" class="mt-3">
-              <b-form-group :label="$t('Please_provide_any_details')">
-                <b-form-textarea id="textarea" v-model="payment.notes" rows="3" max-rows="6"></b-form-textarea>
-              </b-form-group>
-            </b-col>
-
-            <b-col md="12" class="mt-3">
-              <b-button
-                variant="primary"
-                type="submit"
-                :disabled="paymentProcessing"
-              ><i class="i-Yes me-2 font-weight-bold"></i> {{$t('submit')}}</b-button>
-              <div v-once class="typo__p" v-if="paymentProcessing">
-                <div class="spinner sm spinner-primary mt-3"></div>
-              </div>
-            </b-col>
-
-          </b-row>
-        </b-form>
-      </b-modal>
-    </validation-observer>
-
-    <!-- Modal Pay_return_Due-->
-    <validation-observer ref="ref_pay_return_due">
-      <b-modal
-        hide-footer
-        size="md"
-        id="modal_Pay_return_due"
-        title="Pay Sell Return Due"
-      >
-        <b-form @submit.prevent="Submit_Payment_sell_return_due">
-          <b-row>
-          
-            <!-- Paying Amount -->
-            <b-col lg="6" md="12" sm="12">
-              <validation-provider
-                name="Amount"
-                :rules="{ required: true , regex: /^\d*\.?\d*$/}"
-                v-slot="validationContext"
-              >
-                <b-form-group :label="$t('Paying_Amount') + ' ' + '*'">
-                  <b-form-input
-                   @keyup="Verified_return_paidAmount(payment_return.amount)"
-                    label="Amount"
-                    :placeholder="$t('Paying_Amount')"
-                    v-model.number="payment_return.amount"
-                    :state="getValidationState(validationContext)"
-                    aria-describedby="Amount-feedback"
-                  ></b-form-input>
-                  <b-form-invalid-feedback id="Amount-feedback">{{ validationContext.errors[0] }}</b-form-invalid-feedback>
-                  <span class="badge badge-danger">{{$t('Due')}} : {{currentUser.currency}} {{payment_return.return_Due}}</span>
-                </b-form-group>
-              </validation-provider>
-            </b-col>
-
-
-            <!-- Payment choice -->
-            <b-col lg="6" md="12" sm="12">
-              <validation-provider name="Payment choice" :rules="{ required: true}">
-                <b-form-group slot-scope="{ valid, errors }" :label="$t('Paymentchoice')+ ' ' + '*'">
-                  <v-select
-                    :class="{'is-invalid': !!errors.length}"
-                    :state="errors[0] ? false : (valid ? true : null)"
-                    v-model="payment_return.Reglement"
-                    :reduce="label => label.value"
-                    :placeholder="$t('PleaseSelect')"
-                    :options="
-                          [
-                          {label: 'Cash', value: 'Cash'},
-                          {label: 'credit card', value: 'credit card'},
-                          {label: 'TPE', value: 'tpe'},
-                          {label: 'cheque', value: 'cheque'},
-                          {label: 'Western Union', value: 'Western Union'},
-                          {label: 'bank transfer', value: 'bank transfer'},
-                          {label: 'other', value: 'other'},
-                          ]"
-                  ></v-select>
-                  <b-form-invalid-feedback>{{ errors[0] }}</b-form-invalid-feedback>
-                </b-form-group>
-              </validation-provider>
-            </b-col>
-
-            <!-- Note -->
-            <b-col lg="12" md="12" sm="12" class="mt-3">
-              <b-form-group :label="$t('Please_provide_any_details')">
-                <b-form-textarea id="textarea" v-model="payment_return.notes" rows="3" max-rows="6"></b-form-textarea>
-              </b-form-group>
-            </b-col>
-
-            <b-col md="12" class="mt-3">
-              <b-button
-                variant="primary"
-                type="submit"
-                :disabled="payment_return_Processing"
-              ><i class="i-Yes me-2 font-weight-bold"></i> {{$t('submit')}}</b-button>
-              <div v-once class="typo__p" v-if="payment_return_Processing">
-                <div class="spinner sm spinner-primary mt-3"></div>
-              </div>
-            </b-col>
-
-          </b-row>
-        </b-form>
-      </b-modal>
-    </validation-observer>
-
-    <!-- Modal Show Customer_Invoice-->
-    <b-modal hide-footer size="sm" scrollable id="Show_invoice" :title="$t('Customer_Credit_Note')">
-        <div id="invoice-POS">
-          <div style="max-width:400px;margin:0px auto">
-          <div class="info" >
-            <h2 class="text-center">{{company_info.CompanyName}}</h2>
-
-            <p>
-                <span>{{$t('date')}} : {{payment.date}} <br></span>
-                <span >{{$t('Adress')}} : {{company_info.CompanyAdress}} <br></span>
-                <span >{{$t('Phone')}} : {{company_info.CompanyPhone}} <br></span>
-                <span >{{$t('Customer')}} : {{payment.client_name}} <br></span>
-              </p>
-          </div>
-
-           <table
-                class="change mt-3"
-                style=" font-size: 10px;"
-              >
-                <thead>
-                  <tr style="background: #eee; ">
-                    <th style="text-align: left;" colspan="1">{{$t('PayeBy')}}:</th>
-                    <th style="text-align: center;" colspan="2">{{$t('Amount')}}:</th>
-                    <th style="text-align: right;" colspan="1">{{$t('Due')}}:</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  <tr>
-                    <td style="text-align: left;" colspan="1">{{payment.Reglement}}</td>
-                    <td
-                      style="text-align: center;"
-                      colspan="2"
-                    >{{formatNumber(payment.amount ,2)}}</td>
-                    <td
-                      style="text-align: right;"
-                      colspan="1"
-                    >{{formatNumber(payment.due - payment.amount ,2)}}</td>
-                  </tr>
-                </tbody>
-              </table>
-          </div>
-        </div>
-      <button @click="print_it()" class="btn btn-outline-primary">
-        <i class="i-Billing"></i>
-        {{$t('print')}}
-      </button>
-    </b-modal>
-
-    <!-- Modal Show_invoice_return-->
-    <b-modal hide-footer size="sm" scrollable id="Show_invoice_return" :title="$t('Sell_return_due')">
-        <div id="invoice-POS-return">
-          <div style="max-width:400px;margin:0px auto">
-          <div class="info" >
-            <h2 class="text-center">{{company_info.CompanyName}}</h2>
-
-            <p>
-                <span>{{$t('date')}} : {{payment_return.date}} <br></span>
-                <span >{{$t('Adress')}} : {{company_info.CompanyAdress}} <br></span>
-                <span >{{$t('Phone')}} : {{company_info.CompanyPhone}} <br></span>
-                <span >{{$t('Customer')}} : {{payment_return.client_name}} <br></span>
-              </p>
-          </div>
-
-           <table
-                class="change mt-3"
-                style=" font-size: 10px;"
-              >
-                <thead>
-                  <tr style="background: #eee; ">
-                    <th style="text-align: left;" colspan="1">{{$t('PayeBy')}}:</th>
-                    <th style="text-align: center;" colspan="2">{{$t('Amount')}}:</th>
-                    <th style="text-align: right;" colspan="1">{{$t('Due')}}:</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  <tr>
-                    <td style="text-align: left;" colspan="1">{{payment_return.Reglement}}</td>
-                    <td
-                      style="text-align: center;"
-                      colspan="2"
-                    >{{formatNumber(payment_return.amount ,2)}}</td>
-                    <td
-                      style="text-align: right;"
-                      colspan="1"
-                    >{{formatNumber(payment_return.return_Due - payment_return.amount ,2)}}</td>
-                  </tr>
-                </tbody>
-              </table>
-          </div>
-        </div>
-      <button @click="print_return_due()" class="btn btn-outline-primary">
-        <i class="i-Billing"></i>
-        {{$t('print')}}
-      </button>
-    </b-modal>
-
     <!-- Modal Create & Edit Customer -->
     <validation-observer ref="Create_Customer">
       <b-modal hide-footer size="lg" id="New_Customer" :title="editmode?$t('Edit'):$t('Add')">
@@ -466,85 +149,117 @@
                 :rules="{ required: true}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('CustomerName') + ' ' + '*'">
+                <b-form-group :label="$t('CustomerName')">
                   <b-form-input
                     :state="getValidationState(validationContext)"
                     aria-describedby="name-feedback"
                     label="name"
-                    :placeholder="$t('CustomerName')"
                     v-model="client.name"
                   ></b-form-input>
                   <b-form-invalid-feedback id="name-feedback">{{ validationContext.errors[0] }}</b-form-invalid-feedback>
                 </b-form-group>
               </validation-provider>
             </b-col>
-            
-             <!-- Customer Email -->
+
+            <!-- Customer Email -->
             <b-col md="6" sm="12">
+              <validation-provider
+                name="Email customer"
+                :rules="{ required: true}"
+                v-slot="validationContext"
+              >
                 <b-form-group :label="$t('Email')">
                   <b-form-input
-                    label="email"
+                    :state="getValidationState(validationContext)"
+                    aria-describedby="Email-feedback"
+                    label="Email"
                     v-model="client.email"
-                    :placeholder="$t('Email')"
                   ></b-form-input>
+                  <b-form-invalid-feedback id="Email-feedback">{{ validationContext.errors[0] }}</b-form-invalid-feedback>
+                  <b-alert
+                    show
+                    variant="danger"
+                    class="error mt-1"
+                    v-if="email_exist !=''"
+                  >{{email_exist}}</b-alert>
                 </b-form-group>
+              </validation-provider>
             </b-col>
 
             <!-- Customer Phone -->
             <b-col md="6" sm="12">
+              <validation-provider
+                name="Phone Customer"
+                :rules="{ required: true}"
+                v-slot="validationContext"
+              >
                 <b-form-group :label="$t('Phone')">
                   <b-form-input
+                    :state="getValidationState(validationContext)"
+                    aria-describedby="Phone-feedback"
                     label="Phone"
                     v-model="client.phone"
-                    :placeholder="$t('Phone')"
                   ></b-form-input>
+                  <b-form-invalid-feedback id="Phone-feedback">{{ validationContext.errors[0] }}</b-form-invalid-feedback>
                 </b-form-group>
+              </validation-provider>
             </b-col>
 
             <!-- Customer Country -->
             <b-col md="6" sm="12">
+              <validation-provider
+                name="Country customer"
+                :rules="{ required: true}"
+                v-slot="validationContext"
+              >
                 <b-form-group :label="$t('Country')">
                   <b-form-input
+                    :state="getValidationState(validationContext)"
+                    aria-describedby="Country-feedback"
                     label="Country"
                     v-model="client.country"
-                    :placeholder="$t('Country')"
                   ></b-form-input>
+                  <b-form-invalid-feedback id="Country-feedback">{{ validationContext.errors[0] }}</b-form-invalid-feedback>
                 </b-form-group>
+              </validation-provider>
             </b-col>
 
             <!-- Customer City -->
             <b-col md="6" sm="12">
+              <validation-provider
+                name="City Customer"
+                :rules="{ required: true}"
+                v-slot="validationContext"
+              >
                 <b-form-group :label="$t('City')">
                   <b-form-input
+                    :state="getValidationState(validationContext)"
+                    aria-describedby="City-feedback"
                     label="City"
                     v-model="client.city"
-                    :placeholder="$t('City')"
                   ></b-form-input>
+                  <b-form-invalid-feedback id="City-feedback">{{ validationContext.errors[0] }}</b-form-invalid-feedback>
                 </b-form-group>
-            </b-col>
-
-             <!-- Customer Tax Number -->
-            <b-col md="6" sm="12">
-                <b-form-group :label="$t('Tax_Number')">
-                  <b-form-input
-                    label="Tax Number"
-                    v-model="client.tax_number"
-                    :placeholder="$t('Tax_Number')"
-                  ></b-form-input>
-                </b-form-group>
+              </validation-provider>
             </b-col>
 
             <!-- Customer Adress -->
-            <b-col md="12" sm="12">
+            <b-col md="6" sm="12">
+              <validation-provider
+                name="Adress customer"
+                :rules="{ required: true}"
+                v-slot="validationContext"
+              >
                 <b-form-group :label="$t('Adress')">
-                  <textarea
+                  <b-form-input
+                    :state="getValidationState(validationContext)"
+                    aria-describedby="Adress-feedback"
                     label="Adress"
-                    class="form-control"
-                    rows="4"
                     v-model="client.adresse"
-                    :placeholder="$t('Adress')"
-                 ></textarea>
+                  ></b-form-input>
+                  <b-form-invalid-feedback id="Adress-feedback">{{ validationContext.errors[0] }}</b-form-invalid-feedback>
                 </b-form-group>
+              </validation-provider>
             </b-col>
 
             <b-col md="12" class="mt-3">
@@ -558,52 +273,6 @@
         </b-form>
       </b-modal>
     </validation-observer>
-
-    <!-- Modal show_credit_card_details -->
-    <b-modal ok-only size="lg" id="show_credit_card_details" :title="$t('Saved_Credit_Card_Info')">
-      <b-row>
-
-        <b-col md="12" v-if="savedPaymentMethods && savedPaymentMethods.length > 0">
-            <div class="mt-3"><span >Saved Credit Card Info For This Client </span></div>    
-            <table class="table table-hover mt-3">
-              <thead>
-                <tr>
-                  <th>Last 4 digits</th>
-                  <th>Type</th>
-                  <th>Exp</th>
-                  <th>Action</th>
-
-                </tr>
-              </thead>
-
-              <tbody>
-                <tr v-for="card in savedPaymentMethods" :class="{ 'bg-selected-card': isSelectedCard(card) }">
-                  <td>**** {{card.last4}}</td>
-                  <td>{{card.type}}</td>
-                  <td>{{card.exp}}</td>
-                  <td>
-                      <b-button variant="outline-primary" @click="selectCard(card)" v-if="!isSelectedCard(card) && card_id != card.card_id">
-                        <span>
-                          <i class="i-Drag-Up"></i> 
-                          Set as default
-                        </span>
-                      </b-button>
-                        <span v-if="isSelectedCard(card) || card_id == card.card_id"><i class="i-Yes" style=" font-size: 20px; "></i> 
-                        Default credit card  </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-        </b-col>
-
-        <b-col md="12" v-else>
-            <div class="mt-3"><span >Customer don't have credit card saved </span></div>    
-        </b-col>
-
-       
-      </b-row>
-    </b-modal>
 
     <!-- Modal Show Customer Details -->
     <b-modal ok-only size="md" id="showDetails" :title="$t('CustomerDetails')">
@@ -644,24 +313,7 @@
               <tr>
                 <!-- Customer Adress -->
                 <td>{{$t('Adress')}}</td>
-                <th>{{client.adresse}}</th>
-              </tr>
-              <tr>
-                <!-- Tax Number -->
-                <td>{{$t('Tax_Number')}}</td>
-                <th>{{client.tax_number}}</th>
-              </tr>
-
-              <tr>
-                <!-- Total_Sale_Due -->
-                <td>{{$t('Total_Sale_Due')}}</td>
-                <th>{{currentUser.currency}} {{client.due}}</th>
-              </tr>
-
-               <tr>
-                <!-- Total_Sell_Return_Due -->
-                <td>{{$t('Total_Sell_Return_Due')}}</td>
-                <th>{{currentUser.currency}} {{client.return_Due}}</th>
+                <th>{{client.adresse.substring(0, 24)}}</th>
               </tr>
             </tbody>
           </table>
@@ -712,29 +364,37 @@
 
                 <tr>
                   <td>{{$t('Phone')}}</td>
-                 
+                  <th>
+                    <span class="badge badge-outline-success">{{$t('Field_is_required')}}</span>
+                  </th>
                 </tr>
 
                 <tr>
                   <td>{{$t('Email')}}</td>
                   <th>
-                    <span class="badge badge-outline-success"></span>
+                    <span class="badge badge-outline-success">{{$t('Field_is_required')}} | unique</span>
                   </th>
                 </tr>
 
                 <tr>
                   <td>{{$t('Country')}}</td>
+                  <th>
+                    <span class="badge badge-outline-success">{{$t('Field_is_required')}}</span>
+                  </th>
                 </tr>
 
                 <tr>
                   <td>{{$t('City')}}</td>
+                  <th>
+                    <span class="badge badge-outline-success">{{$t('Field_is_required')}}</span>
+                  </th>
                 </tr>
 
                 <tr>
                   <td>{{$t('Adress')}}</td>
-                </tr>
-                 <tr>
-                  <td>{{$t('Tax_Number')}}</td>
+                  <th>
+                    <span class="badge badge-outline-success">{{$t('Field_is_required')}}</span>
+                  </th>
                 </tr>
               </tbody>
             </table>
@@ -757,17 +417,9 @@ export default {
   },
   data() {
     return {
-
-      savedPaymentMethods: [],
-      selectedCard:null,
-      card_id:'',
-      customer_id:'',
-      
       isLoading: true,
       SubmitProcessing:false,
       ImportProcessing:false,
-      paymentProcessing:false,
-      payment_return_Processing:false,
       serverParams: {
         columnFilters: {},
         sort: {
@@ -777,26 +429,7 @@ export default {
         page: 1,
         perPage: 10
       },
-      showDropdown: false,
-      payment: {
-        client_id: "",
-        client_name: "",
-        date:"",
-        due: "",
-        amount: "",
-        notes: "",
-        Reglement: "",
-      },
-       payment_return: {
-        client_id: "",
-        client_name: "",
-        date:"",
-        return_Due: "",
-        amount: "",
-        notes: "",
-        Reglement: "",
-      },
-      company_info:{},
+      email_exist:"",
       selectedIds: [],
       totalRows: "",
       search: "",
@@ -817,30 +450,13 @@ export default {
         phone: "",
         country: "",
         city: "",
-        adresse: "",
-        tax_number: "",
-
+        adresse: ""
       }
     };
   },
 
-   mounted() {
-    this.$root.$on("bv::dropdown::show", bvEvent => {
-      this.showDropdown = true;
-    });
-    this.$root.$on("bv::dropdown::hide", bvEvent => {
-      this.showDropdown = false;
-    });
-  },
-
   computed: {
-    ...mapGetters(["currentUserPermissions", "currentUser"]),
-
-
-    isSelectedCard() {
-      return card => this.selectedCard === card;
-    },
-
+    ...mapGetters(["currentUserPermissions"]),
     columns() {
       return [
         {
@@ -869,26 +485,16 @@ export default {
           thClass: "text-left"
         },
         {
-          label: this.$t("Tax_Number"),
-          field: "tax_number",
+          label: this.$t("Country"),
+          field: "country",
           tdClass: "text-left",
           thClass: "text-left"
         },
         {
-          label: this.$t("Total_Sale_Due"),
-          field: "due",
-          type: "decimal",
+          label: this.$t("City"),
+          field: "city",
           tdClass: "text-left",
-          thClass: "text-left",
-          sortable: false
-        },
-        {
-          label: this.$t("Total_Sell_Return_Due"),
-          field: "return_Due",
-          type: "decimal",
-          tdClass: "text-left",
-          thClass: "text-left",
-          sortable: false
+          thClass: "text-left"
         },
 
         {
@@ -904,7 +510,6 @@ export default {
   },
 
   methods: {
-
     //------------- Submit Validation Create & Edit Customer
     Submit_Customer() {
       this.$refs.Create_Customer.validate().then(success => {
@@ -1003,19 +608,43 @@ export default {
       let columns = [
         { title: "Code", dataKey: "code" },
         { title: "Name", dataKey: "name" },
-        { title: "Sale Due", dataKey: "due" },
-        { title: "Sell Return Due", dataKey: "return_Due" },
-        { title: "Tax Number", dataKey: "tax_number" },
         { title: "Phone", dataKey: "phone" },
         { title: "Email", dataKey: "email" },
         { title: "Country", dataKey: "country" },
-        { title: "City", dataKey: "city" },
+        { title: "City", dataKey: "city" }
       ];
       pdf.autoTable(columns, self.clients);
       pdf.text("Customer List", 40, 25);
       pdf.save("Customer_List.pdf");
     },
 
+    //--------------------------------- Clients Excel -------------------------------\\
+    clients_Excel() {
+      // Start the progress bar.
+      NProgress.start();
+      NProgress.set(0.1);
+      axios
+        .get("clients/export/Excel", {
+          responseType: "blob", // important
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+        .then(response => {
+          const url = window.URL.createObjectURL(new Blob([response.data]));
+          const link = document.createElement("a");
+          link.href = url;
+          link.setAttribute("download", "List_Customers.xlsx");
+          document.body.appendChild(link);
+          link.click();
+          // Complete the animation of theprogress bar.
+          setTimeout(() => NProgress.done(), 500);
+        })
+        .catch(() => {
+          // Complete the animation of theprogress bar.
+          setTimeout(() => NProgress.done(), 500);
+        });
+    },
 
     //--------------------------------------- Get All Clients -------------------------------\\
     Get_Clients(page) {
@@ -1045,7 +674,6 @@ export default {
         )
         .then(response => {
           this.clients = response.data.clients;
-          this.company_info = response.data.company_info;
           this.totalRows = response.data.totalRows;
 
           // Complete the animation of theprogress bar.
@@ -1128,64 +756,6 @@ export default {
         });
     },
 
-    //----------------------------------- show_credit_card_details -------------------------------\\
-
-     show_credit_card_details(id){
-
-        NProgress.start();
-        NProgress.set(0.1);
-        this.customer_id = id;
-        this.savedPaymentMethods = [];
-        this.selectedCard = null
-        this.card_id = '';
-        // Check if the customer has saved payment methods
-         axios.get(`/retrieve-customer?customerId=${id}`)
-            .then(response => {
-                // If the customer has saved payment methods, display them
-                this.savedPaymentMethods = response.data.data;
-                this.card_id = response.data.customer_default_source;
-
-                setTimeout(() => {
-                  Fire.$emit("get_credit_card_details");
-                }, 500);
-            })
-            .catch(error => {
-                // If the customer does not have saved payment methods, show the card element for them to enter their payment information
-               this.savedPaymentMethods = [];
-               this.card_id = '';
-
-                setTimeout(() => {
-                  Fire.$emit("get_credit_card_details");
-                }, 500);
-            });
-
-    },
-
-    selectCard(card) {
-      this.selectedCard = card;
-      this.card_id = card.card_id;
-
-       axios
-        .post("update-customer-stripe", {
-          customer_id: this.customer_id,
-          card_id: this.card_id,
-         
-        })
-        .then(response => {
-
-          this.makeToast(
-            "success",
-            this.$t("Credit_card_changed_successfully"),
-            this.$t("Success")
-          );
-
-        })
-        .catch(error => {
-            this.makeToast("danger", this.$t("InvalidData"), this.$t("Failed"));
-        });
-      
-    },
-
     //----------------------------------- Show Details Client -------------------------------\\
     showDetails(client) {
       // Start the progress bar.
@@ -1219,7 +789,6 @@ export default {
           name: this.client.name,
           email: this.client.email,
           phone: this.client.phone,
-          tax_number: this.client.tax_number,
           country: this.client.country,
           city: this.client.city,
           adresse: this.client.adresse
@@ -1235,7 +804,9 @@ export default {
           this.SubmitProcessing = false;
         })
         .catch(error => {
-          
+          if (error.errors.email.length > 0) {
+            this.email_exist = error.errors.email[0];
+          }
           this.makeToast("danger", this.$t("InvalidData"), this.$t("Failed"));
           this.SubmitProcessing = false;
         });
@@ -1249,7 +820,6 @@ export default {
           name: this.client.name,
           email: this.client.email,
           phone: this.client.phone,
-          tax_number: this.client.tax_number,
           country: this.client.country,
           city: this.client.city,
           adresse: this.client.adresse
@@ -1264,7 +834,9 @@ export default {
           this.SubmitProcessing = false;
         })
         .catch(error => {
-         
+          if (error.errors.email.length > 0) {
+            this.email_exist = error.errors.email[0];
+          }
           this.makeToast("danger", this.$t("InvalidData"), this.$t("Failed"));
           this.SubmitProcessing = false;
         });
@@ -1272,13 +844,13 @@ export default {
 
     //-------------------------------- Reset Form -------------------------------\\
     reset_Form() {
+      this.email_exist= "";
       this.client = {
         id: "",
         name: "",
         email: "",
         phone: "",
         country: "",
-        tax_number: "",
         city: "",
         adresse: ""
       };
@@ -1359,241 +931,7 @@ export default {
             });
         }
       });
-    },
-
-
-    //------ Validate Form Submit_Payment_sell_due
-    Submit_Payment_sell_due() {
-      this.$refs.ref_pay_due.validate().then(success => {
-        if (!success) {
-           this.makeToast(
-            "danger",
-            this.$t("Please_fill_the_form_correctly"),
-            this.$t("Failed")
-          );
-        } else if (this.payment.amount > this.payment.due) {
-          this.makeToast(
-            "warning",
-            this.$t("Paying_amount_is_greater_than_Total_Due"),
-            this.$t("Warning")
-          );
-          this.payment.amount = 0;
-        }
-       else {
-            this.Submit_Pay_due();
-        }
-
-      });
-    },
-
-      //---------- keyup paid Amount
-
-    Verified_paidAmount() {
-      if (isNaN(this.payment.amount)) {
-        this.payment.amount = 0;
-      } else if (this.payment.amount > this.payment.due) {
-        this.makeToast(
-          "warning",
-          this.$t("Paying_amount_is_greater_than_Total_Due"),
-          this.$t("Warning")
-        );
-        this.payment.amount = 0;
-      } 
-    },
-
-      //-------------------------------- reset_Form_payment-------------------------------\\
-    reset_Form_payment() {
-      this.payment = {
-        client_id: "",
-        client_name: "",
-        date: "",
-        due: "",
-        amount: "",
-        notes: "",
-        Reglement: "",
-      };
-    },
-
-    //------------------------------ Show Modal Pay_due-------------------------------\\
-    Pay_due(row) {
-      this.reset_Form_payment();
-      this.payment.client_id = row.id;
-      this.payment.client_name = row.name;
-      this.payment.due = row.due;
-      this.payment.date = new Date().toISOString().slice(0, 10);
-      setTimeout(() => {
-        this.$bvModal.show("modal_Pay_due");
-      }, 500);
-      
-    },
-
-     //------------------------------ Print Customer_Invoice -------------------------\\
-    print_it() {
-      var divContents = document.getElementById("invoice-POS").innerHTML;
-      var a = window.open("", "", "height=500, width=500");
-      a.document.write(
-        '<link rel="stylesheet" href="/css/pos_print.css"><html>'
-      );
-      a.document.write("<body >");
-      a.document.write(divContents);
-      a.document.write("</body></html>");
-      a.document.close();
-      setTimeout(() => {
-         a.print();
-      }, 1000);
-    },
-
-     //---------------------------------------- Submit_Pay_due-------------------------------\\
-    Submit_Pay_due() {
-      this.paymentProcessing = true;
-      axios
-        .post("clients_pay_due", {
-          client_id: this.payment.client_id,
-          amount: this.payment.amount,
-          notes: this.payment.notes,
-          Reglement: this.payment.Reglement,
-        })
-        .then(response => {
-          Fire.$emit("Event_pay_due");
-
-          this.makeToast(
-            "success",
-            this.$t("Create.TitlePayment"),
-            this.$t("Success")
-          );
-          this.paymentProcessing = false;
-        })
-        .catch(error => {
-          this.makeToast("danger", this.$t("InvalidData"), this.$t("Failed"));
-          this.paymentProcessing = false;
-        });
-    },
-
-    //-------------------------------Pay sell return due -----------------------------------\\
-
-     //------ Validate Form Submit_Payment_sell_return_due
-    Submit_Payment_sell_return_due() {
-      this.$refs.ref_pay_return_due.validate().then(success => {
-        if (!success) {
-           this.makeToast(
-            "danger",
-            this.$t("Please_fill_the_form_correctly"),
-            this.$t("Failed")
-          );
-        } else if (this.payment_return.amount > this.payment_return.return_Due) {
-          this.makeToast(
-            "warning",
-            this.$t("Paying_amount_is_greater_than_Total_Due"),
-            this.$t("Warning")
-          );
-          this.payment_return.amount = 0;
-        }
-       else {
-            this.Submit_Pay_return_due();
-        }
-
-      });
-    },
-
-      //---------- keyup paid Amount
-
-    Verified_return_paidAmount() {
-      if (isNaN(this.payment_return.amount)) {
-        this.payment_return.amount = 0;
-      } else if (this.payment_return.amount > this.payment_return.return_Due) {
-        this.makeToast(
-          "warning",
-          this.$t("Paying_amount_is_greater_than_Total_Due"),
-          this.$t("Warning")
-        );
-        this.payment_return.amount = 0;
-      } 
-    },
-
-      //-------------------------------- reset_Form_payment-------------------------------\\
-    reset_Form_payment_return_due() {
-      this.payment_return = {
-        client_id: "",
-        client_name: "",
-        date: "",
-        return_Due: "",
-        amount: "",
-        notes: "",
-        Reglement: "",
-      };
-    },
-
-    //------------------------------ Show Modal Pay_return_due-------------------------------\\
-    Pay_return_due(row) {
-      this.reset_Form_payment_return_due();
-      this.payment_return.client_id = row.id;
-      this.payment_return.client_name = row.name;
-      this.payment_return.return_Due = row.return_Due;
-      this.payment_return.date = new Date().toISOString().slice(0, 10);
-      setTimeout(() => {
-        this.$bvModal.show("modal_Pay_return_due");
-      }, 500);
-      
-    },
-
-     //------------------------------ Print Customer_Invoice -------------------------\\
-    print_return_due() {
-      var divContents = document.getElementById("invoice-POS-return").innerHTML;
-      var a = window.open("", "", "height=500, width=500");
-      a.document.write(
-        '<link rel="stylesheet" href="/css/pos_print.css"><html>'
-      );
-      a.document.write("<body >");
-      a.document.write(divContents);
-      a.document.write("</body></html>");
-      a.document.close();
-      setTimeout(() => {
-         a.print();
-      }, 1000);
-    },
-
-     //---------------------------------------- Submit_Pay_due-------------------------------\\
-    Submit_Pay_return_due() {
-      this.payment_return_Processing = true;
-      axios
-        .post("clients_pay_return_due", {
-          client_id: this.payment_return.client_id,
-          amount: this.payment_return.amount,
-          notes: this.payment_return.notes,
-          Reglement: this.payment_return.Reglement,
-        })
-        .then(response => {
-          Fire.$emit("Event_pay_return_due");
-
-          this.makeToast(
-            "success",
-            this.$t("Create.TitlePayment"),
-            this.$t("Success")
-          );
-          this.payment_return_Processing = false;
-        })
-        .catch(error => {
-          this.makeToast("danger", this.$t("InvalidData"), this.$t("Failed"));
-          this.payment_return_Processing = false;
-        });
-    },
-
-     //------------------------------Formetted Numbers -------------------------\\
-    formatNumber(number, dec) {
-      const value = (typeof number === "string"
-        ? number
-        : number.toString()
-      ).split(".");
-      if (dec <= 0) return value[0];
-      let formated = value[1] || "";
-      if (formated.length > dec)
-        return `${value[0]}.${formated.substr(0, dec)}`;
-      while (formated.length < dec) formated += "0";
-      return `${value[0]}.${formated}`;
-    },
-
-
-
+    }
   }, // END METHODS
 
   //----------------------------- Created function-------------------
@@ -1601,32 +939,11 @@ export default {
   created: function() {
     this.Get_Clients(1);
 
-    Fire.$on("get_credit_card_details", () => {
-      setTimeout(() => NProgress.done(), 500);
-      this.$bvModal.show("show_credit_card_details");
-    });
-
     Fire.$on("Get_Details_customers", () => {
+      // Complete the animation of theprogress bar.
       setTimeout(() => NProgress.done(), 500);
       this.$bvModal.show("showDetails");
     });
-
-    Fire.$on("Event_pay_due", () => {
-      setTimeout(() => {
-        this.Get_Clients(this.serverParams.page);
-        this.$bvModal.hide("modal_Pay_due");
-      }, 500);
-       this.$bvModal.show("Show_invoice");
-    });
-
-    Fire.$on("Event_pay_return_due", () => {
-      setTimeout(() => {
-        this.Get_Clients(this.serverParams.page);
-        this.$bvModal.hide("modal_Pay_return_due");
-      }, 500);
-       this.$bvModal.show("Show_invoice_return");
-    });
-
 
     Fire.$on("Event_Customer", () => {
       setTimeout(() => {

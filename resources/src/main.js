@@ -31,14 +31,12 @@ Vue.component('ValidationProvider', ValidationProvider);
 
 import StockyKit from "./plugins/stocky.kit";
 Vue.use(StockyKit);
+
 import VueCookies from 'vue-cookies'
 Vue.use(VueCookies);
 
 var VueCookie = require('vue-cookie');
 Vue.use(VueCookie);
-
-import VueExcelXlsx from "vue-excel-xlsx";
-Vue.use(VueExcelXlsx);
 
 window.axios = require('axios');
 window.axios.defaults.baseURL = '/api/';
@@ -71,14 +69,17 @@ import vSelect from 'vue-select'
 Vue.component('v-select', vSelect)
 import 'vue-select/dist/vue-select.css';
 
+// import Autocomplete from '@trevoreyre/autocomplete-vue';
 import '@trevoreyre/autocomplete-vue/dist/style.css';
+// Vue.use(Autocomplete);
 
 window.Fire = new Vue();
 
-import Breadcumb from "./components/breadcumb";
+import Breadcumb from "./components/breadcumb.vue";
 import { i18n } from "./plugins/i18n";
 
 Vue.component("breadcumb", Breadcumb);
+
 
 Vue.config.productionTip = true;
 Vue.config.silent = true;

@@ -15,7 +15,6 @@ class Purchase extends Model
     ];
 
     protected $casts = [
-        'user_id' => 'integer',
         'provider_id' => 'integer',
         'warehouse_id' => 'integer',
         'GrandTotal' => 'double',

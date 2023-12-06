@@ -34,10 +34,6 @@ input.is-invalid ~  .invalid-feedback{
 .tag-custom.is-invalid ~ .invalid-feedback {
     display: block;
 }
-
-.vdp-datepicker ~ .invalid-feedback{
-    display: block;
-}
   
 #my-strictly-unique-vue-upload-multiple-image {
     font-family: "Avenir", Helvetica, Arial, sans-serif;

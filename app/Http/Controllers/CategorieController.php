@@ -34,9 +34,6 @@ class CategorieController extends BaseController
                 });
             });
         $totalRows = $categories->count();
-        if($perPage == "-1"){
-            $perPage = $totalRows;
-        }
         $categories = $categories->offset($offSet)
             ->limit($perPage)
             ->orderBy($order, $dir)

@@ -12,7 +12,7 @@
       </b-card-header>
       <b-card-body>
         <b-row id="print_product">
-          <b-col md="12" class="mb-5" v-if="product.type != 'is_variant'">
+          <b-col md="12" class="mb-5">
             <barcode
               class="barcode"
               :format="product.Type_barcode"
@@ -25,10 +25,6 @@
           <b-col md="8">
             <table class="table table-hover table-bordered table-md">
               <tbody>
-                 <tr>
-                  <td>{{$t('type')}}</td>
-                  <th>{{product.type_name}}</th>
-                </tr>
                 <tr>
                   <td>{{$t('CodeProduct')}}</td>
                   <th>{{product.code}}</th>
@@ -45,15 +41,15 @@
                   <td>{{$t('Brand')}}</td>
                   <th>{{product.brand}}</th>
                 </tr>
-                <tr v-if="product.type == 'is_single'">
+                <tr>
                   <td>{{$t('Cost')}}</td>
                   <th>{{currentUser.currency}} {{formatNumber(product.cost ,2)}}</th>
                 </tr>
-                <tr v-if="product.type != 'is_variant'">
+                <tr>
                   <td>{{$t('Price')}}</td>
                   <th>{{currentUser.currency}} {{formatNumber(product.price ,2)}}</th>
                 </tr>
-                <tr v-if="product.type != 'is_service'">
+                <tr>
                   <td>{{$t('Unit')}}</td>
                   <th>{{product.unit}}</th>
                 </tr>
@@ -65,7 +61,7 @@
                   <td>{{$t('TaxMethod')}}</td>
                   <th>{{product.tax_method}}</th>
                 </tr>
-                <tr v-if="product.type != 'is_service'"> 
+                <tr>
                   <td>{{$t('StockAlert')}}</td>
                   <th>
                     <span
@@ -73,7 +69,12 @@
                     >{{formatNumber(product.stock_alert ,2)}}</span>
                   </th>
                 </tr>
-              
+                <tr v-if="product.is_variant == 'yes'">
+                  <td>{{$t('ProductVariant')}}</td>
+                  <th>
+                    <span v-for="variant in product.ProductVariant">{{variant}},</span>
+                  </th>
+                </tr>
               </tbody>
             </table>
           </b-col>
@@ -98,30 +99,8 @@
             </div>
           </b-col>
 
-          <!-- product variant -->
-          <b-col md="5" class="mt-4" v-if="product.type == 'is_variant'">
-            <table class="table table-hover table-sm">
-              <thead>
-                <tr>
-                  <th>{{$t('Variant_code')}}</th>
-                  <th>{{$t('Variant_Name')}}</th>
-                  <th>{{$t('Variant_cost')}}</th>
-                  <th>{{$t('Variant_price')}}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="product_variant_data in product.products_variants_data">
-                  <td>{{product_variant_data.code}}</td>
-                  <td>{{product_variant_data.name}}</td>
-                  <td>{{currentUser.currency}} {{product_variant_data.cost}}</td>
-                  <td>{{currentUser.currency}} {{product_variant_data.price}}</td>
-                </tr>
-              </tbody>
-            </table>
-          </b-col>
-
-           <!-- Warehouse Quantity -->
-          <b-col md="7" class="mt-4" v-if="product.type == 'is_single'">
+          <!-- Warehouse Quantity -->
+          <b-col md="5" class="mt-4">
             <table class="table table-hover table-sm">
               <thead>
                 <tr>
@@ -137,9 +116,8 @@
               </tbody>
             </table>
           </b-col>
-
           <!-- Warehouse Variants Quantity -->
-          <b-col md="7" v-if="product.type == 'is_variant'" class="mt-4">
+          <b-col md="7" v-if="product.is_variant == 'yes'" class="mt-4">
             <table class="table table-hover table-sm">
               <thead>
                 <tr>
@@ -198,7 +176,19 @@ export default {
   },
 
   methods: {
-   
+    //------- printproduct
+    print_product() {
+      var divContents = document.getElementById("print_product").innerHTML;
+      var a = window.open("", "", "height=500, width=500");
+      a.document.write(
+        '<link rel="stylesheet" href="/assets_setup/css/bootstrap.css"><html>'
+      );
+      a.document.write("<body >");
+      a.document.write(divContents);
+      a.document.write("</body></html>");
+      a.document.close();
+      a.print();
+    },
 
     //------------------------------Formetted Numbers -------------------------\\
     formatNumber(number, dec) {
@@ -214,16 +204,11 @@ export default {
       return `${value[0]}.${formated}`;
     },
 
-     //------- printproduct
-    print_product() {
-       this.$htmlToPaper('print_product');
-    },
-
     //----------------------------------- Get Details Product ------------------------------\\
     showDetails() {
       let id = this.$route.params.id;
       axios
-        .get(`get_product_detail/${id}`)
+        .get(`Products/Detail/${id}`)
         .then(response => {
           this.product = response.data;
           this.isLoading = false;

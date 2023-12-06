@@ -3,31 +3,12 @@
     <breadcumb :page="$t('PurchasesReport')" :folder="$t('Reports')"/>
 
     <div v-if="isLoading" class="loading_page spinner spinner-primary mr-3"></div>
-
-     <b-col md="12" class="text-center" v-if="!isLoading">
-        <date-range-picker 
-          v-model="dateRange" 
-          :startDate="startDate" 
-          :endDate="endDate" 
-           @update="Submit_filter_dateRange"
-          :locale-data="locale" > 
-
-          <template v-slot:input="picker" style="min-width: 350px;">
-              {{ picker.startDate.toJSON().slice(0, 10)}} - {{ picker.endDate.toJSON().slice(0, 10)}}
-          </template>        
-        </date-range-picker>
-      </b-col>
-
     <b-card class="wrapper" v-if="!isLoading">
       <vue-good-table
         mode="remote"
         :columns="columns"
         :totalRows="totalRows"
-        :rows="rows"
-        :group-options="{
-          enabled: true,
-          headerPosition: 'bottom',
-        }"
+        :rows="purchases"
         @on-page-change="onPageChange"
         @on-per-page-change="onPerPageChange"
         @on-sort-change="onSortChange"
@@ -52,16 +33,9 @@
           <b-button @click="Purchase_PDF()" size="sm" variant="outline-success ripple m-1">
             <i class="i-File-Copy"></i> PDF
           </b-button>
-          <vue-excel-xlsx
-              class="btn btn-sm btn-outline-danger ripple m-1"
-              :data="purchases"
-              :columns="columns"
-              :file-name="'purchases_report'"
-              :file-type="'xlsx'"
-              :sheet-name="'purchases_report'"
-              >
-              <i class="i-File-Excel"></i> EXCEL
-          </vue-excel-xlsx>
+          <b-button @click="Purchase_Excel()" size="sm" variant="outline-danger ripple m-1">
+            <i class="i-File-Excel"></i> EXCEL
+          </b-button>
         </div>
 
         <template slot="table-row" slot-scope="props">
@@ -96,6 +70,12 @@
     <b-sidebar id="sidebar-right" :title="$t('Filter')" bg-variant="white" right shadow>
       <div class="px-3 py-2">
         <b-row>
+           <!-- date  -->
+          <b-col md="12">
+            <b-form-group :label="$t('date')">
+              <b-form-input type="date" v-model="Filter_date"></b-form-input>
+            </b-form-group>
+          </b-col>
           <!-- Reference -->
           <b-col md="12">
             <b-form-group :label="$t('Reference')">
@@ -111,18 +91,6 @@
                 :placeholder="$t('Choose_Supplier')"
                 v-model="Filter_Supplier"
                 :options="suppliers.map(suppliers => ({label: suppliers.name, value: suppliers.id}))"
-              />
-            </b-form-group>
-          </b-col>
-
-           <!-- warehouse -->
-          <b-col md="12">
-            <b-form-group :label="$t('warehouse')">
-              <v-select
-                v-model="Filter_warehouse"
-                :reduce="label => label.value"
-                :placeholder="$t('Choose_Warehouse')"
-                :options="warehouses.map(warehouses => ({label: warehouses.name, value: warehouses.id}))"
               />
             </b-form-group>
           </b-col>
@@ -178,16 +146,12 @@
 import NProgress from "nprogress";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import DateRangePicker from 'vue2-daterange-picker'
-//you need to import the CSS manually
-import 'vue2-daterange-picker/dist/vue2-daterange-picker.css'
-import moment from 'moment'
 
 export default {
   metaInfo: {
     title: "Report Purchases"
   },
-components: { DateRangePicker },
+
   data() {
     return {
       isLoading: true,
@@ -204,37 +168,11 @@ components: { DateRangePicker },
       totalRows: "",
       Filter_Supplier: "",
       Filter_status: "",
-      Filter_warehouse: "",
       Filter_Payment: "",
       Filter_Ref: "",
+      Filter_date: "",
       suppliers: [],
-      purchases: [],
-      warehouses: [],
-      rows: [{
-          statut: 'Total',
-         
-          children: [
-             
-          ],
-      },],
-      today_mode: true,
-      startDate: "", 
-      endDate: "", 
-      dateRange: { 
-       startDate: "", 
-       endDate: "" 
-      }, 
-      locale:{ 
-          //separator between the two ranges apply
-          Label: "Apply", 
-          cancelLabel: "Cancel", 
-          weekLabel: "W", 
-          customRangeLabel: "Custom Range", 
-          daysOfWeek: moment.weekdaysMin(), 
-          //array of days - see moment documenations for details 
-          monthNames: moment.monthsShort(), //array of month names - see moment documenations for details 
-          firstDay: 1 //ISO first day of week - see moment documenations for details
-        },
+      purchases: []
     };
   },
 
@@ -260,12 +198,6 @@ components: { DateRangePicker },
           thClass: "text-left"
         },
         {
-          label: this.$t("warehouse"),
-          field: "warehouse_name",
-          tdClass: "text-left",
-          thClass: "text-left"
-        },
-        {
           label: this.$t("Status"),
           field: "statut",
           html: true,
@@ -276,7 +208,6 @@ components: { DateRangePicker },
           label: this.$t("Total"),
           field: "GrandTotal",
           type: "decimal",
-          headerField: this.sumCount,
           tdClass: "text-left",
           thClass: "text-left"
         },
@@ -284,7 +215,6 @@ components: { DateRangePicker },
           label: this.$t("Paid"),
           field: "paid_amount",
           type: "decimal",
-          headerField: this.sumCount2,
           tdClass: "text-left",
           thClass: "text-left"
         },
@@ -292,7 +222,6 @@ components: { DateRangePicker },
           label: this.$t("Due"),
           field: "due",
           type: "decimal",
-          headerField: this.sumCount3,
           tdClass: "text-left",
           thClass: "text-left"
         },
@@ -308,32 +237,6 @@ components: { DateRangePicker },
   },
 
   methods: {
-
-    sumCount(rowObj) {
-     
-    	let sum = 0;
-      for (let i = 0; i < rowObj.children.length; i++) {
-        sum += rowObj.children[i].GrandTotal;
-      }
-      return sum;
-    },
-    sumCount2(rowObj) {
-     
-    	let sum = 0;
-      for (let i = 0; i < rowObj.children.length; i++) {
-        sum += rowObj.children[i].paid_amount;
-      }
-      return sum;
-    },
-    sumCount3(rowObj) {
-     
-    	let sum = 0;
-      for (let i = 0; i < rowObj.children.length; i++) {
-        sum += rowObj.children[i].due;
-      }
-      return sum;
-    },
-    
     //---- update Params Table
     updateParams(newProps) {
       this.serverParams = Object.assign({}, this.serverParams, newProps);
@@ -387,7 +290,7 @@ components: { DateRangePicker },
       this.Filter_status = "";
       this.Filter_Payment = "";
       this.Filter_Ref = "";
-      this.Filter_warehouse = "";
+      this.Filter_date = "";
       this.Get_Purchases(this.serverParams.page);
     },
 
@@ -399,7 +302,6 @@ components: { DateRangePicker },
       let columns = [
         { title: "Ref", dataKey: "Ref" },
         { title: "Provider", dataKey: "provider_name" },
-        { title: "Warehouse", dataKey: "warehouse_name" },
         { title: "Status", dataKey: "statut" },
         { title: "Total", dataKey: "GrandTotal" },
         { title: "Paid", dataKey: "paid_amount" },
@@ -411,39 +313,41 @@ components: { DateRangePicker },
       pdf.save("Purchase_report.pdf");
     },
 
+    //----------------------- Purchases Excel -------------------------------\\
+    Purchase_Excel() {
+      // Start the progress bar.
+      NProgress.start();
+      NProgress.set(0.1);
+      axios
+        .get("purchases/export/Excel", {
+          responseType: "blob", // important
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+        .then(response => {
+          const url = window.URL.createObjectURL(new Blob([response.data]));
+          const link = document.createElement("a");
+          link.href = url;
+          link.setAttribute("download", "List_Purchases.xlsx");
+          document.body.appendChild(link);
+          link.click();
+          // Complete the animation of the  progress bar.
+          NProgress.done();
+        })
+        .catch(() => {
+          // Complete the animation of the  progress bar.
+          NProgress.done();
+        });
+    },
+
     //---------------------------------------- Set To Strings-------------------------\\
     setToStrings() {
       // Simply replaces null values with strings=''
       if (this.Filter_Supplier === null) {
         this.Filter_Supplier = "";
-      }else if (this.Filter_warehouse === null) {
-        this.Filter_warehouse = "";
       }
     },
-
-    //----------------------------- Submit Date Picker -------------------\\
-    Submit_filter_dateRange() {
-      var self = this;
-      self.startDate =  self.dateRange.startDate.toJSON().slice(0, 10);
-      self.endDate = self.dateRange.endDate.toJSON().slice(0, 10);
-      self.Get_Purchases(1);
-    },
-
-
-    get_data_loaded() {
-      var self = this;
-      if (self.today_mode) {
-        let today = new Date()
-
-        self.startDate = today.getFullYear();
-        self.endDate = new Date().toJSON().slice(0, 10);
-
-        self.dateRange.startDate = today.getFullYear();
-        self.dateRange.endDate = new Date().toJSON().slice(0, 10);
-        
-      }
-    },
-
 
     //------------------------------------------------ Get Report Purchases -------------------------------\\
     Get_Purchases(page) {
@@ -451,18 +355,16 @@ components: { DateRangePicker },
       NProgress.start();
       NProgress.set(0.1);
       this.setToStrings();
-      this.get_data_loaded();
-
       axios
         .get(
-          "/report/purchases?page=" +
+          "/report/Purchases?page=" +
             page +
             "&Ref=" +
             this.Filter_Ref +
+            "&date=" +
+             this.Filter_date +
             "&provider_id=" +
             this.Filter_Supplier +
-             "&warehouse_id=" +
-            this.Filter_warehouse +
             "&statut=" +
             this.Filter_status +
             "&payment_statut=" +
@@ -474,30 +376,22 @@ components: { DateRangePicker },
             "&search=" +
             this.search +
             "&limit=" +
-            this.limit +
-            "&to=" +
-            this.endDate +
-            "&from=" +
-            this.startDate
-
+            this.limit
         )
         .then(response => {
           this.purchases = response.data.purchases;
           this.suppliers = response.data.suppliers;
-          this.warehouses = response.data.warehouses;
           this.totalRows = response.data.totalRows;
-          this.rows[0].children = this.purchases;
+
           // Complete the animation of theprogress bar.
           NProgress.done();
           this.isLoading = false;
-          this.today_mode = false;
         })
         .catch(response => {
           // Complete the animation of theprogress bar.
           NProgress.done();
           setTimeout(() => {
             this.isLoading = false;
-            this.today_mode = false;
           }, 500);
         });
     },

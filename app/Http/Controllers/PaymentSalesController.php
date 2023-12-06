@@ -1,36 +1,24 @@
 <?php
 namespace App\Http\Controllers;
 
-use Twilio\Rest\Client as Client_Twilio;
-use GuzzleHttp\Client as Client_guzzle;
-use App\Models\SMSMessage;
-use Infobip\Api\SendSmsApi;
-use Infobip\Configuration;
-use Infobip\Model\SmsAdvancedTextualRequest;
-use Infobip\Model\SmsDestination;
-use Infobip\Model\SmsTextualMessage;
-use Illuminate\Support\Str;
-use App\Models\EmailMessage;
-use App\Mail\CustomEmail;
-use App\utils\helpers;
-
+use App\Exports\Payment_Sale_Export;
 use App\Mail\Payment_Sale;
 use App\Models\Client;
 use App\Models\PaymentSale;
 use App\Models\Role;
 use App\Models\Sale;
 use App\Models\Setting;
+use App\utils\helpers;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Maatwebsite\Excel\Facades\Excel;
 use App\Models\PaymentWithCreditCard;
-use \Nwidart\Modules\Facades\Module;
-use App\Models\sms_gateway;
+use Twilio\Rest\Client as Client_Twilio;
 use Stripe;
 use DB;
 use PDF;
-use ArPHP\I18N\Arabic;
 
 class PaymentSalesController extends BaseController
 {
@@ -52,14 +40,13 @@ class PaymentSalesController extends BaseController
         $role = Auth::user()->roles()->first();
         $view_records = Role::findOrFail($role->id)->inRole('record_view');
         // Filter fields With Params to retriever
-        $param = array(0 => 'like', 1 => '=', 2 => 'like');
-        $columns = array(0 => 'Ref', 1 => 'sale_id', 2 => 'Reglement');
+        $param = array(0 => 'like', 1 => '=', 2 => 'like' , 3 => '=');
+        $columns = array(0 => 'Ref', 1 => 'sale_id', 2 => 'Reglement' , 3 => 'date');
         $data = array();
 
         // Check If User Has Permission View  All Records
         $Payments = PaymentSale::with('sale.client')
             ->where('deleted_at', '=', null)
-            ->whereBetween('date', array($request->from, $request->to))
             ->where(function ($query) use ($view_records) {
                 if (!$view_records) {
                     return $query->where('user_id', '=', Auth::user()->id);
@@ -94,9 +81,6 @@ class PaymentSalesController extends BaseController
             });
 
         $totalRows = $Filtred->count();
-        if($perPage == "-1"){
-            $perPage = $totalRows;
-        }
         $Payments = $Filtred->offset($offSet)
             ->limit($perPage)
             ->orderBy($order, $dir)
@@ -109,8 +93,8 @@ class PaymentSalesController extends BaseController
             $item['Ref_Sale'] = $Payment['sale']->Ref;
             $item['client_name'] = $Payment['sale']['client']->name;
             $item['Reglement'] = $Payment->Reglement;
-            $item['montant'] = $Payment->montant;
-            // $item['montant'] = number_format($Payment->montant, 2, '.', '');
+            $item['montant'] = number_format($Payment->montant, 2, '.', '');
+
             $data[] = $item;
         }
 
@@ -158,110 +142,79 @@ class PaymentSalesController extends BaseController
                 }
 
                 if($request['montant'] > 0){
+                    // Paying Method credit card
                     if ($request['Reglement'] == 'credit card') {
-                        $Client = Client::whereId($sale->client_id)->first();
                         Stripe\Stripe::setApiKey(config('app.STRIPE_SECRET'));
 
-                        // Check if the payment record exists
-                        $PaymentWithCreditCard = PaymentWithCreditCard::where('customer_id', $sale->client_id)->first();
+                        $PaymentWithCreditCard = PaymentWithCreditCard::where('customer_id', $request->client_id)->first();
                         if (!$PaymentWithCreditCard) {
-
-                            // Create a new customer and charge the customer with a new credit card
+                            // Create a Customer
                             $customer = \Stripe\Customer::create([
                                 'source' => $request->token,
-                                'email'  => $Client->email,
-                                'name'   => $Client->name,
+                                'email' => $request->client_email,
                             ]);
 
                             // Charge the Customer instead of the card:
                             $charge = \Stripe\Charge::create([
-                                'amount'   => $request['montant'] * 100,
+                                'amount' => $request['montant'] * 100,
                                 'currency' => 'usd',
                                 'customer' => $customer->id,
                             ]);
+
                             $PaymentCard['customer_stripe_id'] = $customer->id;
-
-                        // Check if the payment record not exists
                         } else {
-
-                             // Retrieve the customer ID and card ID
                             $customer_id = $PaymentWithCreditCard->customer_stripe_id;
-                            $card_id = $request->card_id;
 
-                            // Charge the customer with the new credit card or the selected card
-                            if ($request->is_new_credit_card || $request->is_new_credit_card == 'true' || $request->is_new_credit_card === 1) {
-                                // Retrieve the customer
-                                $customer = \Stripe\Customer::retrieve($customer_id);
+                            $charge = \Stripe\Charge::create([
+                                'amount' => $request['montant'] * 100,
+                                'currency' => 'usd',
+                                'customer' => $customer_id,
+                            ]);
 
-                                // Create New Source
-                                $card = \Stripe\Customer::createSource(
-                                    $customer_id,
-                                    [
-                                      'source' => $request->token,
-                                    ]
-                                  );
-
-                                $charge = \Stripe\Charge::create([
-                                    'amount'   => $request['montant'] * 100,
-                                    'currency' => 'usd',
-                                    'customer' => $customer_id,
-                                    'source'   => $card->id,
-                                ]);
-                                $PaymentCard['customer_stripe_id'] = $customer_id;
-
-                            } else {
-                                $charge = \Stripe\Charge::create([
-                                    'amount'   => $request['montant'] * 100,
-                                    'currency' => 'usd',
-                                    'customer' => $customer_id,
-                                    'source'   => $card_id,
-                                ]);
-                                $PaymentCard['customer_stripe_id'] = $customer_id;
-                            }
+                            $PaymentCard['customer_stripe_id'] = $customer_id;
                         }
 
-
-                        $PaymentSale            = new PaymentSale();
-                        $PaymentSale->sale_id   = $sale->id;
-                        $PaymentSale->Ref       = app('App\Http\Controllers\PaymentSalesController')->getNumberOrder();
-                        $PaymentSale->date      = Carbon::now();
+                        $PaymentSale = new PaymentSale();
+                        $PaymentSale->sale_id = $request['sale_id'];
+                        $PaymentSale->Ref = $this->getNumberOrder();
+                        $PaymentSale->date = $request['date'];
                         $PaymentSale->Reglement = $request['Reglement'];
-                        $PaymentSale->montant   = $request['montant'];
-                        $PaymentSale->change    = $request['change'];
-                        $PaymentSale->notes     = $request['notes'];
-                        $PaymentSale->user_id   = Auth::user()->id;
+                        $PaymentSale->montant = $request['montant'];
+                        $PaymentSale->change = $request['change'];
+                        $PaymentSale->notes = $request['notes'];
+                        $PaymentSale->user_id = Auth::user()->id;
                         $PaymentSale->save();
 
                         $sale->update([
-                            'paid_amount'    => $total_paid,
+                            'paid_amount' => $total_paid,
                             'payment_statut' => $payment_statut,
                         ]);
 
-                        $PaymentCard['customer_id'] = $sale->client_id;
-                        $PaymentCard['payment_id']  = $PaymentSale->id;
-                        $PaymentCard['charge_id']   = $charge->id;
+                        $PaymentCard['customer_id'] = $request->client_id;
+                        $PaymentCard['payment_id'] = $PaymentSale->id;
+                        $PaymentCard['charge_id'] = $charge->id;
                         PaymentWithCreditCard::create($PaymentCard);
 
-                        // Paying Method Cash
+                        // Paying Method Cach
                     } else {
 
                         PaymentSale::create([
-                            'sale_id'   => $sale->id,
-                            'Ref'       => app('App\Http\Controllers\PaymentSalesController')->getNumberOrder(),
-                            'date'      => Carbon::now(),
+                            'sale_id' => $request['sale_id'],
+                            'Ref' => $this->getNumberOrder(),
+                            'date' => $request['date'],
                             'Reglement' => $request['Reglement'],
-                            'montant'   => $request['montant'],
-                            'change'    => $request['change'],
-                            'notes'     => $request['notes'],
-                            'user_id'   => Auth::user()->id,
+                            'montant' => $request['montant'],
+                            'change' => $request['change'],
+                            'notes' => $request['notes'],
+                            'user_id' => Auth::user()->id,
                         ]);
 
                         $sale->update([
-                            'paid_amount'    => $total_paid,
+                            'paid_amount' => $total_paid,
                             'payment_statut' => $payment_statut,
                         ]);
-                    }
 
+                    }
                 }
 
             } catch (Exception $e) {
@@ -312,22 +265,107 @@ class PaymentSalesController extends BaseController
             }
 
             try {
-                if ($payment->Reglement != 'credit card') {
+                if ($request['Reglement'] == 'credit card') {
+                    Stripe\Stripe::setApiKey(config('app.STRIPE_SECRET'));
+                    if ($payment->Reglement == 'credit card') {
+
+                        $PaymentWithCreditCard = PaymentWithCreditCard::where('payment_id', $payment->id)->first();
+
+                        // Create Refund
+                        \Stripe\Refund::create([
+                            'charge' => $PaymentWithCreditCard->charge_id,
+                        ]);
+
+                        $customer_id = $PaymentWithCreditCard->customer_stripe_id;
+
+                        // Charge the Customer instead of the card:
+                        $charge = \Stripe\Charge::create([
+                            'amount' => $request['montant'] * 100,
+                            'currency' => 'usd',
+                            'customer' => $customer_id,
+                        ]);
+
+                        $payment->update([
+                            'date' => $request['date'],
+                            'Reglement' => $request['Reglement'],
+                            'montant' => $request['montant'],
+                            'change' => $request['change'],
+                            'notes' => $request['notes'],
+                        ]);
+
+                        $sale->update([
+                            'paid_amount' => $new_total_paid,
+                            'payment_statut' => $payment_statut,
+                        ]);
+
+                        $PaymentWithCreditCard->charge_id = $charge->id;
+                        $PaymentWithCreditCard->save();
+
+                    } else {
+
+                        $PaymentWithCreditCard = PaymentWithCreditCard::where('customer_id', $request->client_id)->first();
+                        if (!$PaymentWithCreditCard) {
+                            // Create a Customer
+                            $customer = \Stripe\Customer::create([
+                                'source' => $request->token,
+                                'email' => $request->client_email,
+                            ]);
+
+                            // Charge the Customer instead of the card:
+                            $charge = \Stripe\Charge::create([
+                                'amount' => $request['montant'] * 100,
+                                'currency' => 'usd',
+                                'customer' => $customer->id,
+                            ]);
+
+                            $PaymentCard['customer_stripe_id'] = $customer->id;
+                        } else {
+                            $customer_id = $PaymentWithCreditCard->customer_stripe_id;
+
+                            $charge = \Stripe\Charge::create([
+                                'amount' => $request['montant'] * 100,
+                                'currency' => 'usd',
+                                'customer' => $customer_id,
+                            ]);
+
+                            $PaymentCard['customer_stripe_id'] = $customer_id;
+                        }
+
+                        $payment->update([
+                            'date' => $request['date'],
+                            'Reglement' => $request['Reglement'],
+                            'montant' => $request['montant'],
+                            'change' => $request['change'],
+                            'notes' => $request['notes'],
+                        ]);
+
+                        $sale->update([
+                            'paid_amount' => $new_total_paid,
+                            'payment_statut' => $payment_statut,
+                        ]);
+
+                        $PaymentCard['customer_id'] = $request->client_id;
+                        $PaymentCard['payment_id'] = $payment->id;
+                        $PaymentCard['charge_id'] = $charge->id;
+                        PaymentWithCreditCard::create($PaymentCard);
+                    }
+
+                    // Paying Method Cach
+                } else {
 
                     $payment->update([
-                        'date'      => $request['date'],
+                        'date' => $request['date'],
                         'Reglement' => $request['Reglement'],
-                        'montant'   => $request['montant'],
-                        'change'    => $request['change'],
-                        'notes'     => $request['notes'],
+                        'montant' => $request['montant'],
+                        'change' => $request['change'],
+                        'notes' => $request['notes'],
                     ]);
 
                     $sale->update([
                         'paid_amount' => $new_total_paid,
                         'payment_statut' => $payment_statut,
                     ]);
-
-                } 
+                }
 
             } catch (Exception $e) {
                 return response()->json(['message' => $e->getMessage()], 500);
@@ -337,10 +375,6 @@ class PaymentSalesController extends BaseController
 
         return response()->json(['success' => true, 'message' => 'Payment Update successfully'], 200);
     }
-
-
-
-
     //----------- Delete Payment Sales --------------\\
 
     public function destroy(Request $request, $id)
@@ -437,196 +471,60 @@ class PaymentSalesController extends BaseController
         $settings = Setting::where('deleted_at', '=', null)->first();
         $symbol = $helpers->Get_Currency_Code();
 
-        $Html = view('pdf.payment_sale', [
+        $pdf = \PDF::loadView('pdf.payment_sale', [
             'symbol' => $symbol,
             'setting' => $settings,
             'payment' => $payment_data,
-        ])->render();
-
-        $arabic = new Arabic();
-        $p = $arabic->arIdentify($Html);
-
-        for ($i = count($p)-1; $i >= 0; $i-=2) {
-            $utf8ar = $arabic->utf8Glyphs(substr($Html, $p[$i-1], $p[$i] - $p[$i-1]));
-            $Html = substr_replace($Html, $utf8ar, $p[$i-1], $p[$i] - $p[$i-1]);
-        }
-
-        $pdf = PDF::loadHTML($Html);
+        ]);
 
         return $pdf->download('Payment_Sale.pdf');
 
-
     }
-
-
 
     //------------- Send Payment Sale on Email -----------\\
 
-
     public function SendEmail(Request $request)
     {
+
         $this->authorizeForUser($request->user('api'), 'view', PaymentSale::class);
-        //PaymentSale
-        $payment = PaymentSale::with('sale.client')->findOrFail($request->id);
 
-        $helpers = new helpers();
-        $currency = $helpers->Get_Currency();
-
-        //settings
-        $settings = Setting::where('deleted_at', '=', null)->first();
-    
-        //the custom msg of payment_received
-        $emailMessage  = EmailMessage::where('name', 'payment_received')->first();
-
-        if($emailMessage){
-            $message_body = $emailMessage->body;
-            $message_subject = $emailMessage->subject;
-        }else{
-            $message_body = '';
-            $message_subject = '';
-        }
-    
-        
-        $payment_number = $payment->Ref;
-
-        $total_amount = $currency .' '.number_format($payment->montant, 2, '.', ',');
-    
-        $contact_name = $payment['sale']['client']->name;
-        $business_name = $settings->CompanyName;
-
-        //receiver email
-        $receiver_email = $payment['sale']['client']->email;
-
-        //replace the text with tags
-        $message_body = str_replace('{contact_name}', $contact_name, $message_body);
-        $message_body = str_replace('{business_name}', $business_name, $message_body);
-        $message_body = str_replace('{payment_number}', $payment_number, $message_body);
-        $message_body = str_replace('{total_amount}', $total_amount, $message_body);
-
-        $email['subject'] = $message_subject;
-        $email['body'] = $message_body;
-        $email['company_name'] = $business_name;
-
-        $this->Set_config_mail(); 
-
-        $mail = Mail::to($receiver_email)->send(new CustomEmail($email));
-
+        $payment = $request->all();
+        $pdf = $this->payment_sale($request, $payment['id']);
+        $this->Set_config_mail(); // Set_config_mail => BaseController
+        $mail = Mail::to($request->to)->send(new Payment_Sale($payment, $pdf));
         return $mail;
     }
-   
- 
-   
-   
-    //-------------------Sms Notifications -----------------\\
 
-    public function Send_SMS(Request $request)
+    //----------- Export To Excel Payment Sales  --------------\\
+
+    public function exportExcel(Request $request)
     {
         $this->authorizeForUser($request->user('api'), 'view', PaymentSale::class);
 
-        //PaymentSale
-        $payment = PaymentSale::with('sale.client')->findOrFail($request->id);
-
-        //settings
-        $settings = Setting::where('deleted_at', '=', null)->first();
-        
-        $default_sms_gateway = sms_gateway::where('id' , $settings->sms_gateway)
-         ->where('deleted_at', '=', null)->first();
-
-        $helpers = new helpers();
-        $currency = $helpers->Get_Currency();
-
-        //the custom msg of payment_received
-        $smsMessage  = SMSMessage::where('name', 'payment_received')->first();
-
-        if($smsMessage){
-            $message_text = $smsMessage->text;
-        }else{
-            $message_text = '';
-        }
-        
-        $payment_number = $payment->Ref;
-
-        $total_amount = $currency .' '.number_format($payment->montant, 2, '.', ',');
-        
-        $contact_name = $payment['sale']['client']->name;
-        $business_name = $settings->CompanyName;
-    
-        //receiver phone
-        $receiverNumber = $payment['sale']['client']->phone;
-
-        //replace the text with tags
-        $message_text = str_replace('{contact_name}', $contact_name, $message_text);
-        $message_text = str_replace('{business_name}', $business_name, $message_text);
-        $message_text = str_replace('{payment_number}', $payment_number, $message_text);
-        $message_text = str_replace('{total_amount}', $total_amount, $message_text);
-
-        //twilio
-        if($default_sms_gateway->title == "twilio"){
-            try {
-    
-                $account_sid = env("TWILIO_SID");
-                $auth_token = env("TWILIO_TOKEN");
-                $twilio_number = env("TWILIO_FROM");
-    
-                $client = new Client_Twilio($account_sid, $auth_token);
-                $client->messages->create($receiverNumber, [
-                    'from' => $twilio_number, 
-                    'body' => $message_text]);
-        
-            } catch (Exception $e) {
-                return response()->json(['message' => $e->getMessage()], 500);
-            }
-        //nexmo
-        }elseif($default_sms_gateway->title == "nexmo"){
-            try {
-
-                $basic  = new \Nexmo\Client\Credentials\Basic(env("NEXMO_KEY"), env("NEXMO_SECRET"));
-                $client = new \Nexmo\Client($basic);
-                $nexmo_from = env("NEXMO_FROM");
-        
-                $message = $client->message()->send([
-                    'to' => $receiverNumber,
-                    'from' => $nexmo_from,
-                    'text' => $message_text
-                ]);
-                        
-            } catch (Exception $e) {
-                return response()->json(['message' => $e->getMessage()], 500);
-            }
-
-        //---- infobip
-        }elseif($default_sms_gateway->title == "infobip"){
-
-            $BASE_URL = env("base_url");
-            $API_KEY = env("api_key");
-            $SENDER = env("sender_from");
-
-            $configuration = (new Configuration())
-                ->setHost($BASE_URL)
-                ->setApiKeyPrefix('Authorization', 'App')
-                ->setApiKey('Authorization', $API_KEY);
-            
-            $client = new Client_guzzle();
-            
-            $sendSmsApi = new SendSMSApi($client, $configuration);
-            $destination = (new SmsDestination())->setTo($receiverNumber);
-            $message = (new SmsTextualMessage())
-                ->setFrom($SENDER)
-                ->setText($message_text)
-                ->setDestinations([$destination]);
-                
-            $request = (new SmsAdvancedTextualRequest())->setMessages([$message]);
-            
-            try {
-                $smsResponse = $sendSmsApi->sendSmsMessage($request);
-                echo ("Response body: " . $smsResponse);
-            } catch (Throwable $apiException) {
-                echo("HTTP Code: " . $apiException->getCode() . "\n");
-            }
-            
-        }
-
-        return response()->json(['success' => true]);
+        return Excel::download(new Payment_Sale_Export, 'Payment_Sale.xlsx');
     }
+
+     //-------------------Sms Notifications -----------------\\
+     public function Send_SMS(Request $request)
+     {
+         $payment = PaymentSale::with('sale', 'sale.client')->findOrFail($request->id);
+         $url = url('/api/payment_Sale_PDF/' . $request->id);
+         $receiverNumber = $payment['sale']['client']->phone;
+         $message = "Dear" .' '.$payment['sale']['client']->name." \n We are contacting you in regard to a Payment #".$payment['sale']->Ref.' '.$url.' '. "that has been created on your account. \n We look forward to conducting future business with you.";
+         try {
+   
+             $account_sid = env("TWILIO_SID");
+             $auth_token = env("TWILIO_TOKEN");
+             $twilio_number = env("TWILIO_FROM");
+   
+             $client = new Client_Twilio($account_sid, $auth_token);
+             $client->messages->create($receiverNumber, [
+                 'from' => $twilio_number, 
+                 'body' => $message]);
+     
+         } catch (Exception $e) {
+             return response()->json(['message' => $e->getMessage()], 500);
+         }
+     }
 
 }

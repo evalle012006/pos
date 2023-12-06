@@ -3,19 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Currency;
+use App\Models\Server;
 use App\Models\Setting;
 use App\Models\PosSetting;
 use App\Models\Client;
-use App\Models\User;
 use App\Models\Warehouse;
-use App\Models\UserWarehouse;
-use App\Models\sms_gateway;
 use File;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Http\Request;
 use Intervention\Image\ImageManagerStatic as Image;
-use \Nwidart\Modules\Facades\Module;
-use Illuminate\Support\Facades\Config;
 
 class SettingsController extends Controller
 {
@@ -66,30 +62,11 @@ class SettingsController extends Controller
             $warehouse = null;
         }
 
-        if ($request['sms_gateway'] != 'null') {
-            $sms_gateway = $request['sms_gateway'];
-        } else {
-            $sms_gateway = null;
-        }
-
         if ($request['default_language'] != 'null') {
             $default_language = $request['default_language'];
         } else {
             $default_language = 'en';
         }
-
-        if($request['is_invoice_footer'] == '1' || $request['is_invoice_footer'] == 'true'){
-            $is_invoice_footer = 1;
-        }else{
-            $is_invoice_footer = 0;
-        }
-
-        if($request['quotation_with_stock'] == '1' || $request['quotation_with_stock'] == 'true'){
-            $quotation_with_stock = 1;
-        }else{
-            $quotation_with_stock = 0;
-        }
-
         Setting::whereId($id)->update([
             'currency_id' => $currency,
             'client_id' => $client,
@@ -101,29 +78,144 @@ class SettingsController extends Controller
             'CompanyAdress' => $request['CompanyAdress'],
             'footer' => $request['footer'],
             'developed_by' => $request['developed_by'],
-            'is_invoice_footer' => $is_invoice_footer,
-            'quotation_with_stock' => $quotation_with_stock,
-            'invoice_footer' => $request['invoice_footer'],
-            'sms_gateway' => $sms_gateway,
             'logo' => $filename,
         ]);
 
-        $this->setEnvironmentValue([
-            'APP_TIMEZONE' => $request['timezone'] !== null?'"' . $request['timezone'] . '"':'"UTC"',
-        ]);
+        return response()->json(['success' => true]);
+    }
 
+      //-------------- Update  Payment Gateway ---------------\\
+
+      public function Update_payment_gateway(Request $request)
+      {
+          $this->authorizeForUser($request->user('api'), 'update', Setting::class);
+
+          if($request['deleted'] == 'true'){
+            $this->setEnvironmentValue([
+                'STRIPE_KEY' => '',
+                'STRIPE_SECRET' => '',
+            ]);
+
+        }else{
+            $this->setEnvironmentValue([
+                'STRIPE_KEY' => $request['stripe_key'] !== null?'"' . $request['stripe_key'] . '"':'',
+                'STRIPE_SECRET' => $request['stripe_secret'] !== null?'"' . $request['stripe_secret'] . '"':'"' . env('STRIPE_SECRET') . '"',
+            ]);
+        }
+
+            Artisan::call('config:cache');
+            Artisan::call('config:clear');
+
+        return response()->json(['success' => true]);
+
+      }
+
+       //-------------- Update  sms_config ---------------\\
+
+       public function sms_config(Request $request)
+       {
+           $this->authorizeForUser($request->user('api'), 'update', Setting::class);
+ 
+           
+             $this->setEnvironmentValue([
+                 'TWILIO_SID' => $request['TWILIO_SID'] !== null?'"' . $request['TWILIO_SID'] . '"':'"' . env('TWILIO_SID') . '"',
+                 'TWILIO_TOKEN' => $request['TWILIO_TOKEN'] !== null?'"' . $request['TWILIO_TOKEN'] . '"':'"' . env('TWILIO_TOKEN') . '"',
+                 'TWILIO_FROM' => $request['TWILIO_FROM'] !== null?'"' . $request['TWILIO_FROM'] . '"':'"' . env('TWILIO_FROM') . '"',
+             ]);
+ 
+             Artisan::call('config:cache');
+             Artisan::call('config:clear');
+ 
+         return response()->json(['success' => true]);
+ 
+       }
+
+    //-------------- Get_sms_config ---------------\\
+
+    public function get_sms_config(Request $request)
+    {
+        $this->authorizeForUser($request->user('api'), 'view', Setting::class);
         Artisan::call('config:cache');
         Artisan::call('config:clear');
 
-        return response()->json(['success' => true]);
+        $item['TWILIO_SID'] = env('TWILIO_SID');
+        $item['TWILIO_FROM'] = env('TWILIO_FROM');
+        $item['TWILIO_TOKEN'] = '';
+        $item['gateway'] = 'Twilio';
+
+        return response()->json(['sms' => $item], 200);
     }
+ 
+
+    //-------------- Get Payment Gateway ---------------\\
+
+    public function Get_payment_gateway(Request $request)
+    {
+        $this->authorizeForUser($request->user('api'), 'view', Setting::class);
+        Artisan::call('config:cache');
+        Artisan::call('config:clear');
+
+        $item['stripe_key'] = env('STRIPE_KEY');
+        $item['stripe_secret'] = '';
+        $item['deleted'] = false;
+
+        return response()->json(['gateway' => $item], 200);
+    }
+
+    
+  
+
+
+    //-------------- Update  SMTP ---------------\\
+
+    public function updateSMTP(Request $request, $id)
+    {
+        $this->authorizeForUser($request->user('api'), 'update', Server::class);
+
+        Server::whereId($id)->update([
+            'host' => $request['host'],
+            'port' => $request['port'],
+            'username' => $request['username'],
+            'password' => $request['password'],
+            'encryption' => $request['encryption'],
+        ]);
+
+        return response()->json(['success' => true]);
+
+    }
+
+
+     //-------------- Update Pos settings ---------------\\
+
+     public function update_pos_settings(Request $request, $id)
+     {
+        $this->authorizeForUser($request->user('api'), 'update', Setting::class);
+ 
+        request()->validate([
+            'note_customer' => 'required',
+        ]);
+
+        PosSetting::whereId($id)->update([
+             'note_customer'  => $request['note_customer'],
+             'show_note'      => $request['show_note'],
+             'show_barcode'   => $request['show_barcode'],
+             'show_discount'  => $request['show_discount'],
+             'show_customer'  => $request['show_customer'],
+             'show_email'     => $request['show_email'],
+             'show_phone'     => $request['show_phone'],
+             'show_address'   => $request['show_address'],
+         ]);
+ 
+         return response()->json(['success' => true]);
+ 
+     }
 
 
      //-------------- Get Pos Settings ---------------\\
 
      public function get_pos_Settings(Request $request)
      {
-         $this->authorizeForUser($request->user('api'), 'pos_settings', Setting::class);
+         $this->authorizeForUser($request->user('api'), 'view', Setting::class);
  
          $PosSetting = PosSetting::where('deleted_at', '=', null)->first();
 
@@ -132,40 +224,6 @@ class SettingsController extends Controller
             ], 200);
     
     }
-
-
-    //-------------- Update Pos settings ---------------\\
-
-    public function update_pos_settings(Request $request, $id)
-    {
-        $this->authorizeForUser($request->user('api'), 'pos_settings', Setting::class);
-
-        request()->validate([
-            'note_customer' => 'required',
-        ]);
-
-        if($request['is_printable'] == '1' || $request['is_printable'] == 'true'){
-            $is_printable = 1;
-        }else{
-            $is_printable = 0;
-        }
-
-        PosSetting::whereId($id)->update([
-            'note_customer'  => $request['note_customer'],
-            'show_note'      => $request['show_note'],
-            'show_barcode'   => $request['show_barcode'],
-            'show_discount'  => $request['show_discount'],
-            'show_customer'  => $request['show_customer'],
-            'show_email'     => $request['show_email'],
-            'show_phone'     => $request['show_phone'],
-            'show_address'   => $request['show_address'],
-            'is_printable'   => $is_printable,
-        ]);
-
-        return response()->json(['success' => true]);
-
-    }
-    
 
     //-------------- Get All Settings ---------------\\
 
@@ -205,16 +263,6 @@ class SettingsController extends Controller
                 $item['warehouse_id'] = '';
             }
 
-            if ($settings->sms_gateway) {
-                if (sms_gateway::where('id', $settings->sms_gateway)->where('deleted_at', '=', null)->first()) {
-                    $item['sms_gateway'] = $settings->sms_gateway;
-                } else {
-                    $item['sms_gateway'] = '';
-                }
-            } else {
-                $item['sms_gateway'] = '';
-            }
-
             $item['id'] = $settings->id;
             $item['email'] = $settings->email;
             $item['CompanyName'] = $settings->CompanyName;
@@ -224,41 +272,32 @@ class SettingsController extends Controller
             $item['footer'] = $settings->footer;
             $item['developed_by'] = $settings->developed_by;
             $item['default_language'] = $settings->default_language;
-            $item['is_invoice_footer'] = $settings->is_invoice_footer;
-            $item['invoice_footer'] = $settings->invoice_footer;
-            $item['quotation_with_stock'] = $settings->quotation_with_stock;
-            $item['timezone'] = env('APP_TIMEZONE') == null?'UTC':env('APP_TIMEZONE');
-
-            $zones_array = array();
-            $timestamp = time();
-            foreach(timezone_identifiers_list() as $key => $zone){
-                date_default_timezone_set($zone);
-                $zones_array[$key]['zone'] = $zone;
-                $zones_array[$key]['diff_from_GMT'] = 'UTC/GMT ' . date('P', $timestamp);
-                $zones_array[$key]['label'] = $zones_array[$key]['diff_from_GMT'] . ' - ' . $zones_array[$key]['zone'];
-            }
 
             $Currencies = Currency::where('deleted_at', null)->get(['id', 'name']);
             $clients = client::where('deleted_at', '=', null)->get(['id', 'name']);
-            $sms_gateway = sms_gateway::where('deleted_at', '=', null)->get(['id', 'title']);
-
-            //get warehouses assigned to user
-            $user_auth = auth()->user();
-            if($user_auth->is_all_warehouses){
-                $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
-            }else{
-                $warehouses_id = UserWarehouse::where('user_id', $user_auth->id)->pluck('warehouse_id')->toArray();
-                $warehouses = Warehouse::where('deleted_at', '=', null)->whereIn('id', $warehouses_id)->get(['id', 'name']);
-            }
+            $warehouses = Warehouse::where('deleted_at', '=', null)->get(['id', 'name']);
 
             return response()->json([
                 'settings' => $item ,
                 'currencies' => $Currencies,
                 'clients' => $clients , 
-                'warehouses' => $warehouses,
-                'sms_gateway' => $sms_gateway,
-                'zones_array' => $zones_array,
+                'warehouses' => $warehouses
             ], 200);
+        } else {
+            return response()->json(['statut' => 'error'], 500);
+        }
+    }
+
+    //-------------- Get STMP ---------------\\
+
+    public function getSMTP(Request $request)
+    {
+        $this->authorizeForUser($request->user('api'), 'view', Server::class);
+
+        $server = Server::where('deleted_at', '=', null)->first();
+
+        if ($server) {
+            return response()->json(['server' => $server], 200);
         } else {
             return response()->json(['statut' => 'error'], 500);
         }

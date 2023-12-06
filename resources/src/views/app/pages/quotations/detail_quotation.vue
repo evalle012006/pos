@@ -24,7 +24,7 @@
             <i class="i-Add"></i>
             <span>{{$t('CreateSale')}}</span>
           </router-link>
-          <button @click="SendEmail()" class="btn-sm btn btn-info ripple btn-icon m-1">
+          <button @click="Quote_Email()" class="btn-sm btn btn-info ripple btn-icon m-1">
             <i class="i-Envelope-2"></i>
             {{$t('Email')}}
           </button>
@@ -103,9 +103,7 @@
                   </thead>
                   <tbody>
                     <tr v-for="detail in details">
-                      <td><span>{{detail.code}} ({{detail.name}})</span>
-                        <p v-show="detail.is_imei && detail.imei_number !==null ">{{$t('IMEI_SN')}} : {{detail.imei_number}}</p>
-                      </td>
+                      <td>{{detail.code}} ({{detail.name}})</td>
                       <td>{{currentUser.currency}} {{formatNumber(detail.Net_price,3)}}</td>
                       <td>{{formatNumber(detail.quantity,2)}} {{detail.unit_sale}}</td>
                       <td>{{currentUser.currency}} {{formatNumber(detail.price,2)}}</td>
@@ -191,7 +189,16 @@ export default {
   methods: {
     //------------------------------ Print -------------------------\\
     print() {
-       this.$htmlToPaper('print_Invoice');
+      var divContents = document.getElementById("print_Invoice").innerHTML;
+      var a = window.open("", "", "height=500, width=500");
+      a.document.write(
+        '<link rel="stylesheet" href="/assets_setup/css/bootstrap.css"><html>'
+      );
+      a.document.write("<body >");
+      a.document.write(divContents);
+      a.document.write("</body></html>");
+      a.document.close();
+      a.print();
     },
 
     //----------------------------------- Print Quotation -------------------------\\
@@ -202,7 +209,7 @@ export default {
       let id = this.$route.params.id;
      
        axios
-        .get(`quote_pdf/${id}`, {
+        .get(`Quote_PDF/${id}`, {
           responseType: "blob", // important
           headers: {
             "Content-Type": "application/json"
@@ -265,13 +272,20 @@ export default {
       });
     },
 
+    //------------------------------------ Form Send Quotation in Email -------------------------\\
+    Quote_Email() {
+      this.email.to = this.quote.client_email;
+      this.email.Quote_Ref = this.quote.Ref;
+      this.email.client_name = this.quote.client_name;
+      this.SendEmail();
+    },
     SendEmail() {
       // Start the progress bar.
       NProgress.start();
       NProgress.set(0.1);
       let id = this.$route.params.id;
       axios
-        .post("quotations_send_email", {
+        .post("quotations/sendQuote/email", {
           id: id,
           to: this.email.to,
           client_name: this.email.client_name,
@@ -301,7 +315,7 @@ export default {
       NProgress.set(0.1);
       let id = this.$route.params.id;
       axios
-        .post("quotations_send_sms", {
+        .post("quotations/send/sms", {
           id: id,
         })
         .then(response => {

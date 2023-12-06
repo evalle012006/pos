@@ -15,7 +15,7 @@
                     :rules="{ required: true}"
                     v-slot="validationContext"
                   >
-                    <b-form-group :label="$t('date') + ' ' + '*'">
+                    <b-form-group :label="$t('date')">
                       <b-form-input
                         :state="getValidationState(validationContext)"
                         aria-describedby="date-feedback"
@@ -31,7 +31,7 @@
                 <!-- Customer -->
                 <b-col lg="4" md="4" sm="12" class="mb-3">
                   <validation-provider name="Customer" :rules="{ required: true}">
-                    <b-form-group slot-scope="{ valid, errors }" :label="$t('Customer') + ' ' + '*'">
+                    <b-form-group slot-scope="{ valid, errors }" :label="$t('Customer')">
                       <v-select
                         :class="{'is-invalid': !!errors.length}"
                         :state="errors[0] ? false : (valid ? true : null)"
@@ -48,7 +48,7 @@
                 <!-- warehouse -->
                 <b-col lg="4" md="4" sm="12" class="mb-3">
                   <validation-provider name="warehouse" :rules="{ required: true}">
-                    <b-form-group slot-scope="{ valid, errors }" :label="$t('warehouse') + ' ' + '*'">
+                    <b-form-group slot-scope="{ valid, errors }" :label="$t('warehouse')">
                       <v-select
                         :class="{'is-invalid': !!errors.length}"
                         :state="errors[0] ? false : (valid ? true : null)"
@@ -71,11 +71,10 @@
                   <div id="autocomplete" class="autocomplete">
                     <input 
                      :placeholder="$t('Scan_Search_Product_by_Code_Name')"
-                       @input='e => search_input = e.target.value' 
-                      @keyup="search(search_input)"
+                      @keyup="search()" 
                       @focus="handleFocus"
                       @blur="handleBlur"
-                      ref="product_autocomplete"
+                      v-model="search_input"  
                       class="autocomplete-input" />
                     <ul class="autocomplete-result-list" v-show="focused">
                       <li class="autocomplete-result" v-for="product_fil in product_filter" @mousedown="SearchProduct(product_fil)">{{getResultValue(product_fil)}}</li>
@@ -113,11 +112,13 @@
                             <span>{{detail.code}}</span>
                             <br>
                             <span class="badge badge-success">{{detail.name}}</span>
+                            <i @click="Modal_Updat_Detail(detail)" class="i-Edit"></i>
                           </td>
                           <td>{{currentUser.currency}} {{formatNumber(detail.Net_price, 3)}}</td>
                           <td>
-                            <span class="badge badge-warning" v-if="detail.product_type == 'is_service'">----</span>
-                            <span class="badge badge-warning" v-else>{{detail.stock}} {{detail.unitSale}}</span>
+                            <span
+                              class="badge badge-outline-warning"
+                            >{{detail.stock}} {{detail.unitSale}}</span>
                           </td>
                           <td>
                             <div class="quantity">
@@ -147,10 +148,14 @@
                           <td>{{currentUser.currency}} {{formatNumber(detail.DiscountNet * detail.quantity, 2)}}</td>
                           <td>{{currentUser.currency}} {{formatNumber(detail.taxe * detail.quantity, 2)}}</td>
                           <td>{{currentUser.currency}} {{detail.subtotal.toFixed(2)}}</td>
-                           <td>
-                            <i v-if="currentUserPermissions && currentUserPermissions.includes('edit_product_quotation')"
-                             @click="Modal_Updat_Detail(detail)" class="i-Edit text-25 text-success cursor-pointer"></i>
-                            <i @click="delete_Product_Detail(detail.detail_id)" class="i-Close-Window text-25 text-danger cursor-pointer"></i>
+                          <td>
+                            <a
+                              @click="delete_Product_Detail(detail.detail_id)"
+                              class="btn btn-icon btn-sm"
+                              title="Delete"
+                            >
+                              <i class="i-Close-Window text-25 text-danger"></i>
+                            </a>
                           </td>
                         </tr>
                       </tbody>
@@ -190,7 +195,7 @@
                 </div>
 
                 <!-- Order Tax  -->
-                <b-col lg="4" md="4" sm="12" class="mb-3" v-if="currentUserPermissions && currentUserPermissions.includes('edit_tax_discount_shipping_quotation')">
+                <b-col lg="4" md="4" sm="12" class="mb-3">
                   <validation-provider
                     name="Order Tax"
                     :rules="{ regex: /^\d*\.?\d*$/}"
@@ -214,7 +219,7 @@
                 </b-col>
 
                 <!-- Discount -->
-                <b-col lg="4" md="4" sm="12" class="mb-3" v-if="currentUserPermissions && currentUserPermissions.includes('edit_tax_discount_shipping_quotation')">
+                <b-col lg="4" md="4" sm="12" class="mb-3">
                   <validation-provider
                     name="Discount"
                     :rules="{ regex: /^\d*\.?\d*$/}"
@@ -238,7 +243,7 @@
                 </b-col>
 
                 <!-- Shipping  -->
-                <b-col lg="4" md="4" sm="12" class="mb-3" v-if="currentUserPermissions && currentUserPermissions.includes('edit_tax_discount_shipping_quotation')">
+                <b-col lg="4" md="4" sm="12" class="mb-3">
                   <validation-provider
                     name="Shipping"
                     :rules="{ regex: /^\d*\.?\d*$/}"
@@ -264,7 +269,7 @@
                   <!-- Status  -->
                 <b-col lg="4" md="4" sm="12" class="mb-3">
                   <validation-provider name="Status" :rules="{ required: true}">
-                    <b-form-group slot-scope="{ valid, errors }" :label="$t('Status') + ' ' + '*'">
+                    <b-form-group slot-scope="{ valid, errors }" :label="$t('Status')">
                       <v-select
                         :class="{'is-invalid': !!errors.length}"
                         :state="errors[0] ? false : (valid ? true : null)"
@@ -294,7 +299,7 @@
                 </b-col>
                 <b-col md="12">
                   <b-form-group>
-                    <b-button variant="primary" @click="Submit_Quotation" :disabled="SubmitProcessing"><i class="i-Yes me-2 font-weight-bold"></i> {{$t('submit')}}</b-button>
+                    <b-button variant="primary" @click="Submit_Quotation" :disabled="SubmitProcessing">{{$t('submit')}}</b-button>
                     <div v-once class="typo__p" v-if="SubmitProcessing">
                       <div class="spinner sm spinner-primary mt-3"></div>
                     </div>
@@ -309,17 +314,17 @@
 
     <!-- Modal Update Detail Product -->
     <validation-observer ref="Update_Detail_quote">
-      <b-modal hide-footer size="lg" id="form_Update_Detail" :title="detail.name">
+      <b-modal hide-footer size="md" id="form_Update_Detail" :title="detail.name">
         <b-form @submit.prevent="submit_Update_Detail">
           <b-row>
             <!-- Unit Price -->
-            <b-col lg="6" md="6" sm="12">
+            <b-col lg="12" md="12" sm="12">
               <validation-provider
                 name="Product Price"
                 :rules="{ required: true , regex: /^\d*\.?\d*$/}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('ProductPrice') + ' ' + '*'" id="Price-input">
+                <b-form-group :label="$t('ProductPrice')" id="Price-input">
                   <b-form-input
                     label="Product Price"
                     v-model="detail.Unit_price"
@@ -332,9 +337,9 @@
             </b-col>
 
             <!-- Tax Method -->
-            <b-col lg="6" md="6" sm="12">
+            <b-col lg="12" md="12" sm="12">
               <validation-provider name="Tax Method" :rules="{ required: true}">
-                <b-form-group slot-scope="{ valid, errors }" :label="$t('TaxMethod') + ' ' + '*'">
+                <b-form-group slot-scope="{ valid, errors }" :label="$t('TaxMethod')">
                   <v-select
                     :class="{'is-invalid': !!errors.length}"
                     :state="errors[0] ? false : (valid ? true : null)"
@@ -353,13 +358,13 @@
             </b-col>
 
             <!-- Tax Rate -->
-             <b-col lg="6" md="6" sm="12">
+            <b-col lg="12" md="12" sm="12">
               <validation-provider
                 name="Order Tax"
                 :rules="{ required: true , regex: /^\d*\.?\d*$/}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('OrderTax') + ' ' + '*'">
+                <b-form-group :label="$t('OrderTax')">
                   <b-input-group append="%">
                     <b-form-input
                       label="Order Tax"
@@ -374,9 +379,9 @@
             </b-col>
 
             <!-- Discount Method -->
-            <b-col lg="6" md="6" sm="12">
+            <b-col lg="12" md="12" sm="12">
               <validation-provider name="Discount Method" :rules="{ required: true}">
-                <b-form-group slot-scope="{ valid, errors }" :label="$t('Discount_Method') + ' ' + '*'">
+                <b-form-group slot-scope="{ valid, errors }" :label="$t('Discount_Method')">
                   <v-select
                     v-model="detail.discount_Method"
                     :reduce="label => label.value"
@@ -395,13 +400,13 @@
             </b-col>
 
             <!-- Discount Rate -->
-            <b-col lg="6" md="6" sm="12">
+            <b-col lg="12" md="12" sm="12">
               <validation-provider
                 name="Discount Rate"
                 :rules="{ required: true , regex: /^\d*\.?\d*$/}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('Discount') + ' ' + '*'">
+                <b-form-group :label="$t('Discount')">
                   <b-form-input
                     label="Discount"
                     v-model="detail.discount"
@@ -414,9 +419,9 @@
             </b-col>
 
              <!-- Unit Sale -->
-             <b-col lg="6" md="6" sm="12" v-if="detail.product_type != 'is_service'">
+            <b-col lg="12" md="12" sm="12">
               <validation-provider name="Unit Sale" :rules="{ required: true}">
-                <b-form-group slot-scope="{ valid, errors }" :label="$t('UnitSale') + ' ' + '*'">
+                <b-form-group slot-scope="{ valid, errors }" :label="$t('UnitSale')">
                   <v-select
                     :class="{'is-invalid': !!errors.length}"
                     :state="errors[0] ? false : (valid ? true : null)"
@@ -430,24 +435,9 @@
               </validation-provider>
             </b-col>
 
-              <!-- Imei or serial numbers -->
-              <b-col lg="12" md="12" sm="12" v-show="detail.is_imei">
-                <b-form-group :label="$t('Add_product_IMEI_Serial_number')">
-                  <b-form-input
-                    label="Add_product_IMEI_Serial_number"
-                    v-model="detail.imei_number"
-                    :placeholder="$t('Add_product_IMEI_Serial_number')"
-                  ></b-form-input>
-                </b-form-group>
-            </b-col>
-
-
             <b-col md="12">
               <b-form-group>
-                <b-button variant="primary" type="submit" :disabled="Submit_Processing_detail"><i class="i-Yes me-2 font-weight-bold"></i> {{$t('submit')}}</b-button>
-                <div v-once class="typo__p" v-if="Submit_Processing_detail">
-                  <div class="spinner sm spinner-primary mt-3"></div>
-                </div>
+                <b-button variant="primary" type="submit">{{$t('submit')}}</b-button>
               </b-form-group>
             </b-col>
           </b-row>
@@ -473,7 +463,6 @@ export default {
       product_filter:[],
       isLoading: true,
       SubmitProcessing:false,
-      Submit_Processing_detail:false,
       warehouses: [],
       units: [],
       clients: [],
@@ -481,7 +470,6 @@ export default {
       details: [],
       detail: {},
       quotations: [],
-      quotation_with_stock:'',
       quote: {
         id: "",
         statut: "pending",
@@ -499,7 +487,6 @@ export default {
       product: {
         id: "",
         code: "",
-        product_type: "",
         stock: "",
         quantity: 1,
         discount: "",
@@ -519,15 +506,13 @@ export default {
         taxe: "",
         tax_percent: "",
         tax_method: "",
-        product_variant_id: "",
-        is_imei: "",
-        imei_number:"",
+        product_variant_id: ""
       },
       symbol: ""
     };
   },
   computed: {
-    ...mapGetters(["currentUserPermissions","currentUser"])
+    ...mapGetters(["currentUser"])
   },
 
   methods: {
@@ -579,23 +564,20 @@ export default {
       });
     },
 
-    //---------------------- get_units ------------------------------\\
-    get_units(value) {
+    //---------------------- Get_sales_units ------------------------------\\
+    Get_sales_units(value) {
       axios
-        .get("get_units?id=" + value)
+        .get("Get_sales_units?id=" + value)
         .then(({ data }) => (this.units = data));
     },
 
     //------ Show Modal Update Detail Product
     Modal_Updat_Detail(detail) {
-      NProgress.start();
-      NProgress.set(0.1);
       this.detail = {};
-      this.get_units(detail.product_id);
+      this.Get_sales_units(detail.product_id);
       this.detail.detail_id = detail.detail_id;
       this.detail.sale_unit_id = detail.sale_unit_id;
       this.detail.name = detail.name;
-      this.detail.product_type = detail.product_type;
       this.detail.Unit_price = detail.Unit_price;
       this.detail.fix_price = detail.fix_price;
       this.detail.fix_stock = detail.fix_stock;
@@ -605,14 +587,7 @@ export default {
       this.detail.discount = detail.discount;
       this.detail.quantity = detail.quantity;
       this.detail.tax_percent = detail.tax_percent;
-      this.detail.is_imei = detail.is_imei;
-      this.detail.imei_number = detail.imei_number;
-
-      setTimeout(() => {
-        NProgress.done();
-        this.$bvModal.show("form_Update_Detail");
-      }, 1000);
-
+      this.$bvModal.show("form_Update_Detail");
     },
 
 
@@ -620,9 +595,6 @@ export default {
     //------ Submit Update Detail Product
 
     Update_Detail() {
-      NProgress.start();
-      NProgress.set(0.1);
-      this.Submit_Processing_detail = true;
       for (var i = 0; i < this.details.length; i++) {
         if (this.details[i].detail_id === this.detail.detail_id) {
 
@@ -653,8 +625,6 @@ export default {
           this.details[i].discount_Method = this.detail.discount_Method;
           this.details[i].discount = this.detail.discount;
           this.details[i].sale_unit_id = this.detail.sale_unit_id;
-          this.details[i].imei_number = this.detail.imei_number;
-          this.details[i].product_type = this.detail.product_type;
 
           if (this.details[i].discount_Method == "2") {
             //Fixed
@@ -695,13 +665,7 @@ export default {
         }
       }
       this.Calcul_Total();
-
-      setTimeout(() => {
-        NProgress.done();
-        this.Submit_Processing_detail = false;
-        this.$bvModal.hide("form_Update_Detail");
-      }, 1000);
-
+      this.$bvModal.hide("form_Update_Detail");
     },
 
 
@@ -713,7 +677,7 @@ export default {
             this.timer = null;
       }
 
-      if (this.search_input.length < 2) {
+      if (this.search_input.length < 1) {
 
         return this.product_filter= [];
       }
@@ -758,25 +722,19 @@ export default {
       ) {
         this.makeToast("warning", this.$t("AlreadyAdd"), this.$t("Warning"));
       } else {
-          if( result.product_type =='is_service'){
-            this.product.quantity = 1;
-            this.product.code = result.code;
-          }else{
-            this.product.code = result.code;
-            this.product.stock = result.qte_sale;
-            this.product.fix_stock = result.qte;
-            if (result.qte_sale < 1) {
-              this.product.quantity = result.qte_sale;
-            } else {
-              this.product.quantity = 1;
-            }
-          }
+        this.product.code = result.code;
+        this.product.stock = result.qte_sale;
+        this.product.fix_stock = result.qte;
+        if (result.qte_sale < 1) {
+          this.product.quantity = result.qte_sale;
+        } else {
+          this.product.quantity = 1;
+        }
         this.product.product_variant_id = result.product_variant_id;
-        this.Get_Product_Details(result.id, result.product_variant_id);
+        this.Get_Product_Details(result.id);
       }
 
       this.search_input= '';
-      this.$refs.product_autocomplete.value = "";
       this.product_filter = [];
     },
 
@@ -794,7 +752,7 @@ export default {
         NProgress.start();
         NProgress.set(0.1);
       axios
-        .get("get_Products_by_warehouse/" + id + "?stock=" + this.quotation_with_stock + "&product_service=" + 1)
+        .get("Products/Warehouse/" + id + "?stock=" + 1)
          .then(response => {
             this.products = response.data;
              NProgress.done();
@@ -812,10 +770,6 @@ export default {
         this.product.detail_id = 1;
       }
       this.details.push(this.product);
-
-      if(this.product.is_imei){
-        this.Modal_Updat_Detail(this.product);
-      }
     },
 
     //-----------------------------------Verified QTY ------------------------------\\
@@ -826,7 +780,7 @@ export default {
             this.details[i].quantity = detail.stock;
           }
 
-          if (this.quotation_with_stock && (detail.quantity > detail.stock)) {
+          if (detail.quantity > detail.stock) {
             this.makeToast("warning", this.$t("LowStock"), this.$t("Warning"));
             this.details[i].quantity = detail.stock;
           } else {
@@ -843,7 +797,7 @@ export default {
     increment(detail, id) {
       for (var i = 0; i < this.details.length; i++) {
         if (this.details[i].detail_id == id) {
-          if (this.quotation_with_stock && (detail.quantity + 1 > detail.stock)) {
+          if (detail.quantity + 1 > detail.stock) {
             this.makeToast("warning", this.$t("LowStock"), this.$t("Warning"));
           } else {
             this.formatNumber(this.details[i].quantity++, 2);
@@ -860,7 +814,7 @@ export default {
       for (var i = 0; i < this.details.length; i++) {
         if (this.details[i].detail_id == id) {
           if (detail.quantity - 1 > 0) {
-            if (this.quotation_with_stock && (detail.quantity - 1 > detail.stock)) {
+            if (detail.quantity - 1 > detail.stock) {
               this.makeToast(
                 "warning",
                 this.$t("LowStock"),
@@ -1043,13 +997,12 @@ export default {
 
     //---------------------------------Get Product Details ------------------------\\
 
-    Get_Product_Details(product_id, variant_id) {
-      axios.get("/show_product_data/" + product_id +"/"+ variant_id).then(response => {
+    Get_Product_Details(product_id) {
+      axios.get("Products/" + product_id).then(response => {
         this.product.discount = 0;
         this.product.DiscountNet = 0;
         this.product.discount_Method = "2";
         this.product.product_id = response.data.id;
-        this.product.product_type = response.data.product_type;
         this.product.name = response.data.name;
         this.product.Net_price = response.data.Net_price;
         this.product.Unit_price = response.data.Unit_price;
@@ -1059,8 +1012,6 @@ export default {
         this.product.tax_percent = response.data.tax_percent;
         this.product.unitSale = response.data.unitSale;
         this.product.sale_unit_id = response.data.sale_unit_id;
-        this.product.is_imei = response.data.is_imei;
-        this.product.imei_number = '';
         this.add_product();
         this.Calcul_Total();
       });
@@ -1073,7 +1024,6 @@ export default {
         .then(response => {
           this.clients = response.data.clients;
           this.warehouses = response.data.warehouses;
-          this.quotation_with_stock = response.data.quotation_with_stock;
           this.isLoading = false;
         })
         .catch(response => {

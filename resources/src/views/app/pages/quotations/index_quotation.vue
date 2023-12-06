@@ -41,16 +41,9 @@
           <b-button @click="Quotation_PDF()" size="sm" variant="outline-success ripple m-1">
             <i class="i-File-Copy"></i> PDF
           </b-button>
-          <vue-excel-xlsx
-              class="btn btn-sm btn-outline-danger ripple m-1"
-              :data="quotations"
-              :columns="columns"
-              :file-name="'quotations'"
-              :file-type="'xlsx'"
-              :sheet-name="'quotations'"
-              >
-              <i class="i-File-Excel"></i> EXCEL
-          </vue-excel-xlsx>
+          <b-button @click="Quotation_Excel()" size="sm" variant="outline-danger ripple m-1">
+            <i class="i-File-Excel"></i> EXCEL
+          </b-button>
           <router-link
             class="btn-sm btn btn-primary ripple btn-icon m-1"
             v-if="currentUserPermissions && currentUserPermissions.includes('Quotations_add')"
@@ -109,14 +102,9 @@
                   {{$t('DownloadPdf')}}
                 </b-dropdown-item>
 
-                <b-dropdown-item title="Email" @click="SendEmail(props.row.id)">
+                <b-dropdown-item title="Email" @click="QuoteEmail(props.row , props.row.id)">
                   <i class="nav-icon i-Envelope-2 font-weight-bold mr-2"></i>
-                  {{$t('email_notification')}}
-                </b-dropdown-item>
-
-                 <b-dropdown-item title="SMS" @click="Quote_SMS(props.row.id)">
-                  <i class="nav-icon i-Speach-Bubble font-weight-bold mr-2"></i>
-                  {{$t('sms_notification')}}
+                  {{$t('QuoteEmail')}}
                 </b-dropdown-item>
 
                 <b-dropdown-item
@@ -136,13 +124,6 @@
               class="badge badge-outline-success"
             >{{$t('Sent')}}</span>
             <span v-else class="badge badge-outline-info">{{$t('Pending')}}</span>
-          </div>
-          <div v-else-if="props.column.field == 'Ref'">
-            <router-link
-              :to="'/app/quotations/detail/'+props.row.id"
-            >
-              <span class="ul-btn__text ml-1">{{props.row.Ref}}</span>
-            </router-link>
           </div>
         </template>
       </vue-good-table>
@@ -409,8 +390,7 @@ export default {
       this.Filter_client = "";
       this.Filter_status = "";
       this.Filter_Ref = "";
-      this.Filter_warehouse = ""; 
-      this.Get_Quotations(this.serverParams.page);
+      (this.Filter_warehouse = ""), this.Get_Quotations(this.serverParams.page);
     },
 
     //------------------------------------- Quotations PDF -------------------------\\
@@ -422,7 +402,6 @@ export default {
         { title: "Date", dataKey: "date" },
         { title: "Ref", dataKey: "Ref" },
         { title: "Client", dataKey: "client_name" },
-        { title: "Warehouse", dataKey: "warehouse_name" },
         { title: "Status", dataKey: "statut" },
         { title: "Total", dataKey: "GrandTotal" }
       ];
@@ -431,13 +410,41 @@ export default {
       pdf.save("Quotation_List.pdf");
     },
 
+    //----------------------------------- print Quotations Excel -------------------------\\
+    Quotation_Excel() {
+      // Start the progress bar.
+      NProgress.start();
+      NProgress.set(0.1);
+      axios
+        .get("quotations/export/Excel", {
+          responseType: "blob", // important
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+        .then(response => {
+          const url = window.URL.createObjectURL(new Blob([response.data]));
+          const link = document.createElement("a");
+          link.href = url;
+          link.setAttribute("download", "List_Quotations.xlsx");
+          document.body.appendChild(link);
+          link.click();
+          // Complete the animation of the  progress bar.
+          setTimeout(() => NProgress.done(), 500);
+        })
+        .catch(() => {
+          // Complete the animation of the  progress bar.
+          setTimeout(() => NProgress.done(), 500);
+        });
+    },
+
      //----------------------------------- Quotation PDF by id -------------------------\\
     Quote_pdf(quote, id) {
       // Start the progress bar.
       NProgress.start();
       NProgress.set(0.1);
       axios
-        .get("quote_pdf/" + id, {
+        .get("Quote_PDF/" + id, {
           responseType: "blob", // important
           headers: {
             "Content-Type": "application/json"
@@ -459,14 +466,23 @@ export default {
         });
     },
 
-
+    //------------------------------------ Form Send Quotation in  Email -------------------------\\
+    QuoteEmail(quote) {
+      this.email.to = quote.client_email;
+      this.email.quote_Ref = quote.Ref;
+      this.email.client_name = quote.client_name;
+      this.SendEmail(quote.id);
+    },
     SendEmail(id) {
       // Start the progress bar.
       NProgress.start();
       NProgress.set(0.1);
       axios
-        .post("quotations_send_email", {
+        .post("quotations/sendQuote/email", {
           id: id,
+          to: this.email.to,
+          client_name: this.email.client_name,
+          Ref: this.email.quote_Ref
         })
         .then(response => {
           // Complete the animation of the  progress bar.
@@ -481,32 +497,6 @@ export default {
           // Complete the animation of the  progress bar.
           setTimeout(() => NProgress.done(), 500);
           this.makeToast("danger", this.$t("SMTPIncorrect"), this.$t("Failed"));
-        });
-    },
-
-    //---------SMS notification
-     
-     Quote_SMS(id) {
-      // Start the progress bar.
-      NProgress.start();
-      NProgress.set(0.1);
-      axios
-        .post("quotations_send_sms", {
-          id: id,
-        })
-        .then(response => {
-          // Complete the animation of the  progress bar.
-          setTimeout(() => NProgress.done(), 500);
-          this.makeToast(
-            "success",
-            this.$t("Send_SMS"),
-            this.$t("Success")
-          );
-        })
-        .catch(error => {
-          // Complete the animation of the  progress bar.
-          setTimeout(() => NProgress.done(), 500);
-          this.makeToast("danger", this.$t("sms_config_invalid"), this.$t("Failed"));
         });
     },
 
@@ -629,7 +619,7 @@ export default {
           NProgress.start();
           NProgress.set(0.1);
           axios
-            .post("quotations_delete_by_selection", {
+            .post("quotations/delete/by_selection", {
               selectedIds: this.selectedIds
             })
             .then(() => {

@@ -67,7 +67,7 @@
                 :rules="{ required: true , min:2 , max:5}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('CurrencyCode') + ' ' + '*'">
+                <b-form-group :label="$t('CurrencyCode')">
                   <b-form-input
                     :placeholder="$t('Enter_Code_Currency')"
                     :state="getValidationState(validationContext)"
@@ -87,7 +87,7 @@
                 :rules="{ required: true , min:3}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('CurrencyName') + ' ' + '*'">
+                <b-form-group :label="$t('CurrencyName')">
                   <b-form-input
                     :placeholder="$t('Enter_name_Currency')"
                     :state="getValidationState(validationContext)"
@@ -107,7 +107,7 @@
                 :rules="{ required: true , max:5}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('Symbol') + ' ' + '*'">
+                <b-form-group :label="$t('Symbol')">
                   <b-form-input
                     :placeholder="$t('Enter_Symbol_Currency')"
                     :state="getValidationState(validationContext)"
@@ -121,7 +121,7 @@
             </b-col>
 
              <b-col md="12" class="mt-3">
-                <b-button variant="primary" type="submit"  :disabled="SubmitProcessing"><i class="i-Yes me-2 font-weight-bold"></i> {{$t('submit')}}</b-button>
+                <b-button variant="primary" type="submit"  :disabled="SubmitProcessing">{{$t('submit')}}</b-button>
                   <div v-once class="typo__p" v-if="SubmitProcessing">
                     <div class="spinner sm spinner-primary mt-3"></div>
                   </div>

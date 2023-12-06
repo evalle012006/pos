@@ -68,7 +68,7 @@
                 :rules="{ required: true}"
                 v-slot="validationContext"
               >
-                <b-form-group :label="$t('Name') + ' ' + '*'">
+                <b-form-group :label="$t('Name')">
                   <b-form-input
                     :placeholder="$t('Enter_Name_Warehouse')"
                     :state="getValidationState(validationContext)"
@@ -83,35 +83,62 @@
 
             <!-- Phone -->
             <b-col md="6">
+              <validation-provider
+                name="Phone"
+                :rules="{ required: true}"
+                v-slot="validationContext"
+              >
                 <b-form-group :label="$t('Phone')">
                   <b-form-input
                     :placeholder="$t('Enter_Phone_Warehouse')"
+                    :state="getValidationState(validationContext)"
+                    aria-describedby="Phone-feedback"
                     label="Phone"
                     v-model="warehouse.mobile"
                   ></b-form-input>
+                  <b-form-invalid-feedback id="Phone-feedback">{{ validationContext.errors[0] }}</b-form-invalid-feedback>
                 </b-form-group>
+              </validation-provider>
             </b-col>
 
             <!-- Country -->
             <b-col md="6">
+              <validation-provider
+                name="Country"
+                :rules="{ required: true}"
+                v-slot="validationContext"
+              >
                 <b-form-group :label="$t('Country')">
                   <b-form-input
                     :placeholder="$t('Enter_Country_Warehouse')"
+                    :state="getValidationState(validationContext)"
+                    aria-describedby="Country-feedback"
                     label="Country"
                     v-model="warehouse.country"
                   ></b-form-input>
+                  <b-form-invalid-feedback id="Country-feedback">{{ validationContext.errors[0] }}</b-form-invalid-feedback>
                 </b-form-group>
+              </validation-provider>
             </b-col>
 
             <!-- City -->
             <b-col md="6">
+              <validation-provider
+                name="City"
+                :rules="{ required: true}"
+                v-slot="validationContext"
+              >
                 <b-form-group :label="$t('City')">
                   <b-form-input
                     :placeholder="$t('Enter_City_Warehouse')"
+                    :state="getValidationState(validationContext)"
+                    aria-describedby="City-feedback"
                     label="City"
                     v-model="warehouse.city"
                   ></b-form-input>
+                  <b-form-invalid-feedback id="City-feedback">{{ validationContext.errors[0] }}</b-form-invalid-feedback>
                 </b-form-group>
+              </validation-provider>
             </b-col>
 
             <!-- Email -->
@@ -137,7 +164,7 @@
             </b-col>
 
             <b-col md="12" class="mt-3">
-                <b-button variant="primary" type="submit"  :disabled="SubmitProcessing"><i class="i-Yes me-2 font-weight-bold"></i> {{$t('submit')}}</b-button>
+                <b-button variant="primary" type="submit"  :disabled="SubmitProcessing">{{$t('submit')}}</b-button>
                   <div v-once class="typo__p" v-if="SubmitProcessing">
                     <div class="spinner sm spinner-primary mt-3"></div>
                   </div>

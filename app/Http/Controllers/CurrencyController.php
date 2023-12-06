@@ -34,9 +34,6 @@ class CurrencyController extends Controller
                 });
             });
         $totalRows = $currencies->count();
-        if($perPage == "-1"){
-            $perPage = $totalRows;
-        }
         $currencies = $currencies->offset($offSet)
             ->limit($perPage)
             ->orderBy($order, $dir)

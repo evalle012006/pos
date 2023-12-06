@@ -83,6 +83,7 @@ axios.interceptors.response.use((response) => {
 window.Fire = new Vue();
 
 import { i18n } from "./plugins/i18n";
+import largeSidebar from "./store/modules/largeSidebar";
 
 Vue.component('login-component', require('./views/app/sessions/signIn.vue').default);
 Vue.component('forgot-component', require('./views/app/sessions/forgot.vue').default);

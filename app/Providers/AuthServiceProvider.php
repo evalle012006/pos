@@ -40,17 +40,6 @@ class AuthServiceProvider extends ServiceProvider
         'App\Models\Unit'                      => 'App\Policies\UnitPolicy',
         'App\Models\Sale'                      => 'App\Policies\SalePolicy',
         'App\Models\User'                      => 'App\Policies\UserPolicy',
-        'App\Models\Shipment'                  => 'App\Policies\ShipmentPolicy',
-        
-        //hrm
-        'App\Models\Employee'                  => 'App\Policies\EmployeePolicy',
-        'App\Models\Company'                   => 'App\Policies\CompanyPolicy',
-        'App\Models\Department'                => 'App\Policies\DepartmentPolicy',
-        'App\Models\Designation'               => 'App\Policies\DesignationPolicy',
-        'App\Models\OfficeShift'               => 'App\Policies\Office_ShiftPolicy',
-        'App\Models\Attendance'                => 'App\Policies\AttendancePolicy',
-        'App\Models\Leave'                     => 'App\Policies\LeavePolicy',
-        'App\Models\Holiday'                   => 'App\Policies\HolidayPolicy',
 
     ];
 

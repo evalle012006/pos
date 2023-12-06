@@ -1,25 +1,10 @@
 import BootstrapVue from 'bootstrap-vue/dist/bootstrap-vue.esm';
 import VueGoodTablePlugin from "vue-good-table";
 import Meta from "vue-meta";
+import DateRangePicker from 'vue-mj-daterangepicker';
+import 'vue-mj-daterangepicker/dist/vue-mj-daterangepicker.css';
 import "./../assets/styles/sass/themes/lite-purple.scss";
 import "./sweetalert2.js";
-import VueHtmlToPaper from 'vue-html-to-paper';
-const options = {
-  name: '_blank',
-  specs: [
-    'fullscreen=yes',
-    'titlebar=yes',
-    'scrollbars=yes'
-  ],
-  styles: [
-    'https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css',
-    'https://unpkg.com/kidlat-css/css/kidlat.css',    
-  ],
-  timeout: 1000, // default timeout before the print window appears
-  autoClose: true, // if false, the window will not close after printing
-  windowTitle: window.document.title, // override the window title
-}
-
 
 export default {
   install(Vue) {
@@ -38,6 +23,7 @@ export default {
     Vue.component("vue-perfect-scrollbar", () =>
       import(/* webpackChunkName: "vue-perfect-scrollbar" */ "vue-perfect-scrollbar")
     );
+    Vue.use(DateRangePicker);
     Vue.use(Meta, {
       keyName: "metaInfo",
       attribute: "data-vue-meta",
@@ -46,8 +32,6 @@ export default {
       refreshOnceOnNavigation: true
     });
     Vue.use(VueGoodTablePlugin);
-    Vue.use(VueHtmlToPaper, options);
-
 
   }
 };

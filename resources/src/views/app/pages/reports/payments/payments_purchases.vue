@@ -3,31 +3,12 @@
     <breadcumb :page="$t('PurchaseInvoice')" :folder="$t('Reports')"/>
 
     <div v-if="isLoading" class="loading_page spinner spinner-primary mr-3"></div>
-
-    <b-col md="12" class="text-center" v-if="!isLoading">
-        <date-range-picker 
-          v-model="dateRange" 
-          :startDate="startDate" 
-          :endDate="endDate" 
-           @update="Submit_filter_dateRange"
-          :locale-data="locale" > 
-
-          <template v-slot:input="picker" style="min-width: 350px;">
-              {{ picker.startDate.toJSON().slice(0, 10)}} - {{ picker.endDate.toJSON().slice(0, 10)}}
-          </template>        
-        </date-range-picker>
-      </b-col>
-
     <b-card class="wrapper" v-if="!isLoading">
       <vue-good-table
         mode="remote"
         :columns="columns"
         :totalRows="totalRows"
-        :rows="rows"
-        :group-options="{
-          enabled: true,
-          headerPosition: 'bottom',
-        }"
+        :rows="payments"
         @on-page-change="onPageChange"
         @on-per-page-change="onPerPageChange"
         @on-sort-change="onSortChange"
@@ -52,16 +33,9 @@
           <b-button @click="Payment_PDF()" size="sm" variant="outline-success ripple m-1">
             <i class="i-File-Copy"></i> PDF
           </b-button>
-           <vue-excel-xlsx
-              class="btn btn-sm btn-outline-danger ripple m-1"
-              :data="payments"
-              :columns="columns"
-              :file-name="'payments'"
-              :file-type="'xlsx'"
-              :sheet-name="'payments'"
-              >
-              <i class="i-File-Excel"></i> EXCEL
-          </vue-excel-xlsx>
+          <b-button @click="Payment_Excel()" size="sm" variant="outline-danger ripple m-1">
+            <i class="i-File-Excel"></i> EXCEL
+          </b-button>
         </div>
       </vue-good-table>
     </b-card>
@@ -70,6 +44,13 @@
     <b-sidebar id="sidebar-right" :title="$t('Filter')" bg-variant="white" right shadow>
       <div class="px-3 py-2">
         <b-row>
+
+          <!-- date  -->
+          <b-col md="12">
+            <b-form-group :label="$t('date')">
+              <b-form-input type="date" v-model="Filter_date"></b-form-input>
+            </b-form-group>
+          </b-col>
 
           <!-- Reference -->
           <b-col md="12">
@@ -113,7 +94,6 @@
                           [
                           {label: 'Cash', value: 'Cash'},
                           {label: 'cheque', value: 'cheque'},
-                          {label: 'TPE', value: 'tpe'},
                           {label: 'Western Union', value: 'Western Union'},
                           {label: 'bank transfer', value: 'bank transfer'},
                           {label: 'credit card', value: 'credit card'},
@@ -150,16 +130,11 @@
 import NProgress from "nprogress";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import DateRangePicker from 'vue2-daterange-picker'
-//you need to import the CSS manually
-import 'vue2-daterange-picker/dist/vue2-daterange-picker.css'
-import moment from 'moment'
 
 export default {
   metaInfo: {
     title: "Payment Purchases"
   },
-  components: { DateRangePicker },
   data() {
     return {
       isLoading: true,
@@ -176,36 +151,12 @@ export default {
       totalRows: "",
       Filter_Supplier: "",
       Filter_Ref: "",
+      Filter_date: "",
       Filter_purchase: "",
       Filter_Reg: "",
       payments: [],
       suppliers: [],
-      rows: [{
-          Reglement: 'Total',
-         
-          children: [
-             
-          ],
-      },],
-      purchases: [],
-      today_mode: true,
-      startDate: "", 
-      endDate: "", 
-      dateRange: { 
-       startDate: "", 
-       endDate: "" 
-      }, 
-      locale:{ 
-          //separator between the two ranges apply
-          Label: "Apply", 
-          cancelLabel: "Cancel", 
-          weekLabel: "W", 
-          customRangeLabel: "Custom Range", 
-          daysOfWeek: moment.weekdaysMin(), 
-          //array of days - see moment documenations for details 
-          monthNames: moment.monthsShort(), //array of month names - see moment documenations for details 
-          firstDay: 1 //ISO first day of week - see moment documenations for details
-        },
+      purchases: []
     };
   },
 
@@ -245,8 +196,6 @@ export default {
         {
           label: this.$t("Amount"),
           field: "montant",
-          type: "decimal",
-          headerField: this.sumCount,
           tdClass: "text-left",
           thClass: "text-left"
         }
@@ -255,16 +204,6 @@ export default {
   },
 
   methods: {
-
-    sumCount(rowObj) {
-     
-    	let sum = 0;
-      for (let i = 0; i < rowObj.children.length; i++) {
-        sum += rowObj.children[i].montant;
-      }
-      return sum;
-    },
-
     //---- update Params
     updateParams(newProps) {
       this.serverParams = Object.assign({}, this.serverParams, newProps);
@@ -317,6 +256,7 @@ export default {
       this.search = "";
       this.Filter_Supplier = "";
       this.Filter_Ref = "";
+      this.Filter_date = "";
       this.Filter_purchase = "";
       this.Filter_Reg = "";
       this.Payments_Purchases(this.serverParams.page);
@@ -350,43 +290,49 @@ export default {
       pdf.save("Payments_Purchases_List.pdf");
     },
 
-    //----------------------------- Submit Date Picker -------------------\\
-    Submit_filter_dateRange() {
-      var self = this;
-      self.startDate =  self.dateRange.startDate.toJSON().slice(0, 10);
-      self.endDate = self.dateRange.endDate.toJSON().slice(0, 10);
-      self.Payments_Purchases(1);
-    },
-
-
-    get_data_loaded() {
-      var self = this;
-      if (self.today_mode) {
-        let today = new Date()
-
-        self.startDate = today.getFullYear();
-        self.endDate = new Date().toJSON().slice(0, 10);
-
-        self.dateRange.startDate = today.getFullYear();
-        self.dateRange.endDate = new Date().toJSON().slice(0, 10);
-        
-      }
+    //-------------------------------- Payments Purchases Excel  ---------------------\\
+    Payment_Excel() {
+      // Start the progress bar.
+      NProgress.start();
+      NProgress.set(0.1);
+      axios
+        .get("payment/purchase/export/Excel", {
+          responseType: "blob", // important
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+        .then(response => {
+          const url = window.URL.createObjectURL(new Blob([response.data]));
+          const link = document.createElement("a");
+          link.href = url;
+          link.setAttribute("download", "Payment_Purchases.xlsx");
+          document.body.appendChild(link);
+          link.click();
+          // Complete the animation of the  progress bar.
+          NProgress.done();
+        })
+        .catch(() => {
+          // Complete the animation of the  progress bar.
+          NProgress.done();
+        });
     },
 
     //-------------------------------- Get All Payments Purchases ---------------------\\
     Payments_Purchases(page) {
+      this.setToStrings();
       // Start the progress bar.
       NProgress.start();
       NProgress.set(0.1);
       this.setToStrings();
-      this.get_data_loaded();
-
       axios
         .get(
-          "payment_purchase?page=" +
+          "payment/purchase?page=" +
             page +
             "&Ref=" +
             this.Filter_Ref +
+            "&date=" +
+            this.Filter_date +
             "&provider_id=" +
             this.Filter_Supplier +
             "&purchase_id=" +
@@ -400,11 +346,7 @@ export default {
             "&search=" +
             this.search +
             "&limit=" +
-            this.limit +
-            "&to=" +
-            this.endDate +
-            "&from=" +
-            this.startDate
+            this.limit
         )
 
         .then(response => {
@@ -412,18 +354,15 @@ export default {
           this.suppliers = response.data.suppliers;
           this.purchases = response.data.purchases;
           this.totalRows = response.data.totalRows;
-          this.rows[0].children = this.payments;
           // Complete the animation of theprogress bar.
           NProgress.done();
           this.isLoading = false;
-          this.today_mode = false;
         })
         .catch(response => {
           // Complete the animation of theprogress bar.
           NProgress.done();
           setTimeout(() => {
             this.isLoading = false;
-            this.today_mode = false;
           }, 500);
         });
     }

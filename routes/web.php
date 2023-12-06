@@ -2,7 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
-
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -112,13 +111,12 @@ Route::group(['middleware' => ['auth', 'Is_Active']], function () {
     Route::get('/{vue?}',
         function () {
             $installed = Storage::disk('public')->exists('installed');
-
             if ($installed === false) {
                 return redirect('/setup');
             } else {
                 return view('layouts.master');
             }
-        })->where('vue', '^(?!api|setup|update|password).*$');
+        })->where('vue', '^(?!setup|update|password).*$');
 
 
     });
@@ -130,20 +128,15 @@ Route::group(['middleware' => ['auth', 'Is_Active']], function () {
 
 //------------------------------------------------------------------\\
 
-Route::group(['middleware' => ['auth', 'Is_Active']], function () {
+Route::get('/update', 'UpdateController@viewStep1');
 
-    Route::get('/update', 'UpdateController@viewStep1');
+Route::get('/update/finish', function () {
 
-    Route::get('/update/finish', function () {
-
-        return view('update.finishedUpdate');
-    });
-
-    Route::post('/update/lastStep', [
-        'as' => 'update_lastStep', 'uses' => 'UpdateController@lastStep',
-    ]);
-
+    return view('update.finishedUpdate');
 });
 
+Route::post('/update/lastStep', [
+    'as' => 'update_lastStep', 'uses' => 'UpdateController@lastStep',
+]);
 
 

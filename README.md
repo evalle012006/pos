@@ -1,256 +1,271 @@
-# Version 1.1 - 07-04-2021
+# ANISRA MKTG POS and Inventory System
 
--   Updated : bug Fixed in backup
--   Added : Support IE
+<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400"></a></p>
 
-# Version 1.2 - 08-04-2021
+<p align="center">
+<a href="https://travis-ci.org/laravel/framework"><img src="https://travis-ci.org/laravel/framework.svg" alt="Build Status"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+</p>
 
--   Added : Footer Dynamic
--   Added : Instruction Installation In Localhost
--   Updated : Changing the Database Structure
--   Updated : bug Fixed in dark mode
--   Updated : bug Fixed in Edit Payment
+## About Laravel
 
-# Version 1.3 - 10-04-2021
+Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
--   Updated : Improve Code
--   Updated : Improve security
+- [Simple, fast routing engine](https://laravel.com/docs/routing).
+- [Powerful dependency injection container](https://laravel.com/docs/container).
+- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
+- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
+- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
+- [Robust background job processing](https://laravel.com/docs/queues).
+- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
 
-# Version 1.4 - 12-04-2021
+Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
--   Added : Updated Guide
--   Updated : Fixed dropdown in purchases
--   Updated : Fixed Import Products by csv
+## Learning Laravel
 
-# Version 2.0 - 21-04-2021
+Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
 
--   Updated : Improve security
--   Added : Integration Payment Gateway ( Stripe)
--   Updated : Upgrade to laravel 8 (Support php 8)
--   Updated : The new minimum PHP version is now 7.3.0.
--   Added : Filter By Date for all reports
+If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 1500 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
 
-# Version 2.1.0 - 22-04-2021
+## Laravel Sponsors
 
--   Updated : Improve security
--   Updated : Fix bug Duplicate User & Customer & Product Code
+We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
 
-# Version 2.2.0 - 02-05-2021
+### Premium Partners
 
--   Added : SMS API (Twilio)
--   Added : Footer Dynamic
--   Updated : Fix bug in Password Database
--   Updated : Fix bug in Stock Alert
+- **[Vehikl](https://vehikl.com/)**
+- **[Tighten Co.](https://tighten.co)**
+- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
+- **[64 Robots](https://64robots.com)**
+- **[Cubet Techno Labs](https://cubettech.com)**
+- **[Cyber-Duck](https://cyber-duck.co.uk)**
+- **[Many](https://www.many.co.uk)**
+- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
+- **[DevSquad](https://devsquad.com)**
+- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
+- **[OP.GG](https://op.gg)**
 
-# Version 2.3.0 - 18-05-2021
+## Contributing
 
--   Added : Default Customer & Warehouse in POS
--   Updated : Fix bug in editing Variants Product
+Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
 
-# Version 2.4.0 - 02-06-2021
+## Code of Conduct
 
--   Added : Add Sale Date in invoice
--   Updated :  Fix Duplicated product in import
--   Updated :  Fix Minor bugs
+In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
 
-# Version 2.5.0 - 08-06-2021
+## Security Vulnerabilities
 
--   Updated :  Fix POS Receipt Printer
+If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
-# Version 3.0.0 - 25-06-2021
+## License
 
--   Added  :  Barcode Scanner in POS
--   Updated :  Fix bug in Import Product
--   Updated :  Fix bug in download file
--   Updated :  Updated Iconsmind
+The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
 
-# Version 3.1.0 - 28-06-2021
+## Docker Implementation
 
--   Updated :  Minor bug fixes
+This section documents how team members can implement docker container to this application if not already installed. 
 
-# Version 3.2.0 - 30-06-2021
+```
+Note: You need to have docker and docker-compose installed before you can proceed with the following steps.
+```
 
--   Updated : Fix bug in download pdf (Support php 8)
--   Added  : Clearing cache with a click of a button
--   Updated : Fix bug in Import Product (without create warehouse)
--   Updated : Change currency symbol from the right to the left
--   Added  : Video in documentation showing you the steps on how to upgrade stocky
--   Updated : Minor bug fixes
+### Steps in applying docker
 
-# Version 3.3.0 - 06-07-2021
+```
+Note: Make sure your application already contains `.env` file before you proceed with the next steps. Some of these variables here will be edited later.
+```
 
--   Added  :  Add the ability to enter the BarCode manually
--   Added  :  Barcode Scanner (All Operations)
--   Updated :  Fix bug in barcode printing
--   Added  :  Paper Size for printing barcode labels
--   Updated :  Correct some words in Spanish translation
--   Updated :  Fix bug in Editing Variants
--   Updated :  Fix bug in generate backup
--   Updated :  Improve security
--   Updated :  Documentation Updated
--   Updated :  Minor bug fixes
+#### Step 1 - Setup Dockerfile
 
-# Version 3.3.1 - 06-07-2021
+Create a file named `Dockerfile` in the root directory and copy the content below. You can, however, modify the Dockerfile to suit your personal preference.
 
--   Fixed  :  Fix bug in pos
+```
+FROM php:7.4-fpm
 
-# Version 3.3.2 - 12-07-2021
+# Arguments defined in docker-compose.yml
+ARG user
+ARG uid
 
--   Fixed  :  bug in pos
--   Fixed  :  Design & Size receipt pos for thermal receipt printer
--   Fixed  :  Currency symbol Dynamic in input fields
--   Fixed  :  Bug Duplicate save data when click more than one times
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libwebp-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
+    libxpm-dev \
+    zip \
+    unzip
 
-# Version 3.4.0 - 29-07-2021
+# Clear cache
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
--   Added    :  Server requirements in Installation
--   Added    :  Automatically increase quantity in POS when scanning items
--   Added    :  option to choose unit when create Transaction
--   Added    :  Paid Amount & due Amount in pos receipt
--   Fixed    :  Show Items in dashboard with permissions
--   Fixed    :  if Transaction deleted the stock return to previous status
--   Fixed    :  Profit Calculation based by (price & cost)
--   Fixed    :  Report Profit And Loss
--   Fixed    :  Bug in editing Transaction 
--   Fixed    :  Bug in Units
--   Updated  :  Improve security
--   Updated  :  Documentation Updated
+# Install PHP extensions
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
-# Version 3.5.0 - 02-08-2021
+# Setup GD extensions
+RUN docker-php-ext-configure gd --with-jpeg --with-freetype
+RUN docker-php-ext-install gd
 
--   Added    :  Cost of goods sold formula implemented to calculate profit
--   Added    :  received & paying Amount & change
--   Fixed    :  bug in calculate Due Amount
--   Fixed    :  migration database
--   Fixed    :  Minor bug fixes
--   Updated  :  pos receipt
+# Get latest Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Version 3.6.0 - 08-08-2021
+# Create system user to run Composer and Artisan Commands
+RUN useradd -G www-data,root -u $uid -d /home/$user $user
+RUN mkdir -p /home/$user/.composer && \
+    chown -R $user:$user /home/$user
 
--   Fixed    :  Minor bug fixes
--   Updated  :  Documentation Updated
+# Set working directory
+WORKDIR /var/www
 
-# Version 3.7.0 - 26-09-2021
+USER $user
+```
 
--   Added    :  Choose default language from area settings
--   Added    :  Pos Settings
--   Fixed    :  bug in twillio SMS
--   Updated  :  Hide Documentation from sidebar
--   Updated  :  Improve performance
--   Updated  :  Documentation Updated
--   Fixed    :  bug fixes
+#### Step 2 - Setup docker-compose.yml
 
+Create another file inside the root directory of the app and name it `docker-compose.yml`. Copy the content of the file below. You can also edit the file according to your desired preferences. 
 
-# Version 3.8.0 - 28-10-2021
+```
+version: "3.7"
+services:
+  app:
+    build:
+      args:
+        user: xdonie11
+        uid: 1000
+      context: ./
+      dockerfile: Dockerfile
+    image: anisra
+    container_name: anisra-app
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
+    networks:
+      - anisra
 
--   Updated  :  Report profit
--   Updated  :  Update stock without purchase product
--   Fixed    :  Bug fixes
+  db:
+    platform: linux/x86_64
+    image: mysql:5.7
+    container_name: anisra-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_USER: ${DB_USERNAME}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    ports:
+       - "3356:3306"
+    volumes:
+      - ./docker-compose/mysql:/docker-entrypoint-initdb.d
+    networks:
+      - anisra
 
-# Version 3.9.0 - 01-01-2022
+  nginx:
+    image: nginx:alpine
+    container_name: anisra-nginx
+    restart: unless-stopped
+    ports:
+      - 8000:80
+    volumes:
+      - ./:/var/www
+      - ./docker-compose/nginx:/etc/nginx/conf.d/
+    networks:
+      - anisra
 
-- Added    :  Add Korean language
-- Added    :  Add Paid Amount & Due on pdf
-- Added    :  Add Note on Detail transaction
-- Fixed    :  Search box fixed
-- Fixed    :  Bug fixes
+networks:
+  anisra:
+    driver: bridge
+```
 
-# Version 4.0.0 - 11-04-2022
+Important things to remember: 
+The db service contains a container_name key. This is the value you should place into the `DB_HOST` value in `.env` file. 
+The volumes inside the db service and nginx both uses the path `./docker-compose/` please take note of this as you will be creating a new path in the next step. 
 
-+ Added ability to assign warehouses to users
-+ Added Module HRM
-+ Added multi reports
-+ Added Date Range in all reports
-+ Update all the Node.js dependencies to their latest version
-+ Documentation Updated
-+ Fix issue in search box not working properly on mobile
-+ Fix Print CSS
-+ Make fields optional for Customers & Providers
-+ Fixed npm install
-+ Small Bug fixes
+#### Step 3 - Create the paths (directories) for the volumes
 
-# Version 4.0.1
+Create a folder named `docker-compose` inside the root directory of the app and then `cd` into the docker-compose directory. Create two folders named `nginx` and `mysql` respectively.
 
-+ Added Warranty Management (IMEI & SERIAL NUMBERS)
-+ Added Delivery Management
-+ Added ability to assign warehouses to users
-+ Added Users Report
-+ Added Stock Report
-+ Added Due Report to Customers
-+ Added Due Report to Suppliers
-+ Added Export PDF to all reports
-+ Small Bug fixes
+#### Step 4 - Create the app.conf file
 
-# Version 4.0.2
+Create the nginx conf file named `app.conf` inside the path `/docker-compose/nginx` directory. Copy the content as shown below. 
 
-+ Added    : Pay all due from the customer list in one payment
-+ Added    : option product not for selling
-+ Added    : Nexmo (Vonage now) SMS Gateway
-+ Added    : bengali language 
-+ Added    : Notification for new update
-+ Added    : Select Timezone in settings
-+ Added    : more setting pages
-+ Added    : invoice footer
-+ Added    : Permission to Dashboard
-+ Added    : shipping fees in pos receipt
-+ Updated  : Sale return will be according to Sale reference.
-+ Updated  : Purchase return will be according to Purchase reference.
-+ Updated  : Renamed all routes api
-+ Updated  : documentation Updated
-+ Fixed    : Mail settings issue
-+ Fixed    : Bug fixed when you make a payment
-+ Fixed    : only admin or user who has permission "system_setting" he can upgrade the system
-+ Fixed    : bug fixes
+```
+server {
+    listen 80;
+    index index.php index.html;
+    error_log  /var/log/nginx/error.log;
+    access_log /var/log/nginx/access.log;
+    root /var/www/public;
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass app:9000;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+    }
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+        gzip_static on;
+    }
+}
+```
 
-# Version 4.0.3
+You are now ready to run the docker image and container and start the development without the need to install any web services. Follow the next steps to run the docker container using docker-compose
 
-+ Add sum of Amount in reports
-+ Add clean-webpack-plugin
-+ Some bugs Fixed
+#### Step 5 - Run docker-compose
 
-# Version 4.0.4
+Follow these commands in your terminal (this can run from either macOS terminal, wsl 2, or linux cli). 
 
-+ Pay all sell return due from the customer list in one payment
-+ Pay all Supplier due from the Supplier list in one payment
-+ Pay all Purchase return due from the Supplier list in one payment
-+ Fix bug in  Purchase & sale return
-+ Add Brazilian Portuguese Language
-+ Add Tax Number for Customers & Suppliers
-+ Add Total revenue (sales - sales return)
-+ Documentation Updated
-+ Some bugs Fixed
+First,  lets build the app.
 
-# Version 4.0.5
+```
+docker-compose build app
+```
 
-+ Added  :  Profit Net using (FIFO METHOD)
-+ Added  :  Profit Net using (Average Cost)
-+ Added  :  Product report
-+ Added  :  Product Sell report
-+ Added  :  Product Purchase report
-+ Added  :  Filter by warehouse in reports & dashboard
-+ Added  :  Enable/Disable Print Invoice automatically
-+ Fixed  :  Arabic language in PDF
-+ Fixed  :  bug in twillio SMS
-+ Fixed  :  print pos receipt
-+ Some bugs Fixed
+Then we run the containers. 
 
-# Version 4.0.6
+```
+docker-compose up -d
+```
 
-+ Fixed issue in Stripe
-+ Showing the credit card saved for the client
-+ Choose the default credit card for the client
-+ Added Price & cost & code to Variants
-+ Added Auto Generate barcode 
-+ Added New SMS Gateway InfoBip
-+ Added Custom Templates for SMS
-+ Added Custom Templates for Email
-+ Added Danish Language
-+ Added Price in barcode printing
-+ Added an option to choose if you want make a quotation 
-  with items has no stock or has stock
-+ Added more Permissions
-+ Added logo in receipt POS
-+ Added warehouse in receipt POS
-+ Fixed bug in assign warehouses to users
-+ Fixed bug in Import products
-+ Some bugs Fixed
+We can check if the container ran properly without any issues by this command. 
+
+```
+docker-compose ps
+```
+
+We can also check the files with this command. 
+
+```
+docker-compose exec app ls -l
+```
+
+Once we are already sure about the files that are already in our container, and our containers did not encounter any issues, we can proceed to install our laravel application inside the container by running the following command in the terminal. 
+
+```
+docker-compose exec app <laravel syntax>
+```
+
+Examples: 
+
+```
+docker-compose exec app composer install
+docker-compose exec app php artisan key:generate
+docker-compose exec app php artisan migrate
+docker-compose exec app php artisan db:seed
+```
+
+The example above (in order) runs the basic composer command from our terminal through the docker container. You can now start development and have fun coding!!!
+
+Notes: 
+If you encounter error while using docker-compose in wsl2, close the terminal and open a new one. This is known bug and I could not find the reference for this bug from github as of this writing. I will update this once I get the link of this reported bug from github once I'm able to find them. 
